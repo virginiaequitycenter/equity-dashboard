@@ -1,0 +1,18 @@
+.httr-oauth
+
+# ignore supplementary folders
+cf/
+data/
+dev/
+tempdata/
+
+# ignore data files and image files
+*.RDS
+*.geojson
+*.Rdata
+*.png
+*.Rhistory
+
+# ignore shinyapps connection
+cville-region/rsconnect/
+cville-region/www/

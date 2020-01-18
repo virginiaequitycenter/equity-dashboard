@@ -1,0 +1,17 @@
+{
+    "path" : "~/Box Sync/mpc/dataForDemocracy/equitymetrics/equity_profile/cville-region",
+    "sortOrder" : [
+        {
+            "ascending" : false,
+            "columnIndex" : 4
+        },
+        {
+            "ascending" : false,
+            "columnIndex" : 3
+        },
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}

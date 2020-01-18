@@ -1,0 +1,23 @@
+---
+title: "Resources and Links"
+date: ""
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+A place to highlight relevant work hosted elsewhere!
+
+These are intended to provide an example of what that could look like. If we decide we'd like a resource page like this, all ideas are welcome and needed for what to include.
+
+### Equity-related research
+
+* Michele P. Claibourn, Charlotte McClintock et al. 2019. [Charlottesville Foster Care Study.](https://doi.org/10.18130/v3-ztey-hn31) Prepared by the Public Interest Data Lab for the Charlottesville Department of Social Services, Charlottesville, VA. University of Virginia.
+
+* Michele P. Claibourn, Charlotte McClintock et al. 2018. [Charlottesville Child Welfare Study.](https://doi.org/10.18130/v3-1j50-3z57) Prepared by the Public Interest Data Lab for the Charlottesville Department of Social Services, Charlottesville, VA. University of Virginia.
+
+### Equity-related resources
+
+* [Charlottesville Region's Charitable NGO Dashboard](https://commpaslab.shinyapps.io/cville-nonprofits/)
