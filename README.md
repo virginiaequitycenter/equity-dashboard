@@ -1,7 +1,7 @@
 # equity-dashboard
 This repo hosts the R code to collect and prepare data and to create the app for the prototype dashboard for regional indicators.
 
-[Regional Equity Dashboard Prototype](https://commpaslab.shinyapps.io/cville-region/)
+[Regional Equity Dashboard Prototype](http://commdash.batten.virginia.edu:3838/cville-region/)
 
 ## datacode
 
