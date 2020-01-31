@@ -13,6 +13,7 @@ tempdata/
 *.png
 *.Rhistory
 *.Rapp.history
+equity_profile.Rproj
 .Rproj.user/
 
 # ignore shinyapps connection
