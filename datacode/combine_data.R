@@ -76,7 +76,7 @@ tract_data <- tract_data %>%
 
 # add life expectancy by county
 county_data <- county_data %>% 
-  left_join(life_exp_county, by = c("GEOID" = "fips", "year" = "year")) %>% 
+  left_join(life_exp_county, by = c("GEOID" = "FIPS", "year" = "year")) %>% 
   rename(locality = "locality.x") %>% select(-locality.y) %>% 
   select(move_last(., c("state", "locality"))) 
 
@@ -200,18 +200,26 @@ blkgrp_data_geo$lat <- blkgrp_data_geo$ctr[,2]
 
 
 # ....................................................
-# 5. Define color palettes ----
+# 5. Metrics for snapshop valuebox ----
+county_dash <- county_data %>% filter(year == "2018") %>% 
+  select(GEOID, county.nice, totalpopE, hd_index, hhincE, cpovrateE, life_expE, renter30E)
+
+
+# ....................................................
+# 6. Define color palettes ----
 nb.cols <- 10
 mycolors <- colorRampPalette(brewer.pal(8, "YlGnBu"))(nb.cols)
 
 
 # ....................................................
-# 6. Save for app ----
+# 7. Save for app ----
 save.image(file = "data/combine_data.Rdata") # for updates
+# load("data/combine_data.Rdata")
 
 rm(ccode, geo, blkgrp_geo, life_exp_tract, life_exp_county, prettytab, seg_county, 
    county_data_time, tract_data_time, tab, tab2, tab3, region, move_last)
 
 save.image(file = "data/app_data.Rdata") 
 # load("data/app_data.Rdata")
+
 

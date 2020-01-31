@@ -49,6 +49,13 @@ library(tidycensus)
 ##  - Percent Two or more races -- DP05_0083P
 ##  - Percent Hispanic or Latino -- DP05_0071P
 
+## TBA: over time of key metrics to show comparison in dashboard boxes
+##  - Median personal earnings of all workers with earnings ages 16 and older -- S2001_C01_002
+##  - Child poverty rate -- S1701_C03_002
+##  - School enrollment for the population age 3 to 24 -- S1401_C02_014, S1401_C02_016, S1401_C02_018, S1401_C02_020, S1401_C02_022, S1401_C21_024
+##  - Percent high school graduate or higher -- S1501_C02_014
+##  - Percent bachelor's degree or higher -- S1501_C02_015
+##  - Percent graduate degree or higher -- S1501_C02_013
 
 # ....................................................
 # 2. Define localities, ----

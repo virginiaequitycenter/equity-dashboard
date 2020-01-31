@@ -13,6 +13,7 @@ tempdata/
 *.png
 *.Rhistory
 *.Rapp.history
+.Rproj.user/
 
 # ignore shinyapps connection
 cville-region/rsconnect/

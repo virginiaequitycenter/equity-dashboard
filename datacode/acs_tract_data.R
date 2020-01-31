@@ -2,7 +2,7 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Acquire ACS data
-# Last updated: 01/17/2020
+# Last updated: 01/24/2020
 # Metrics from ACS (in common with locality level): 
 # * Total population
 # * Poverty, child poverty 
@@ -14,7 +14,7 @@
 # * Age groups: 0-17, 18-24, 25-64, 65 or more
 # * Median personal earnings
 # * Net school enrollment
-#
+
 # Based on: ACS 2014-2018 
 # Geography: Tracts in Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene, Louisa, 
@@ -72,6 +72,9 @@ library(tidycensus)
 ##  - Age, 65 and over --S0101_C02_030
 ##  - School enrollment for the population age 3 to 24 -- S1401_C02_014, S1401_C02_016, S1401_C02_018, S1401_C02_020, S1401_C02_022, S1401_C21_024
 ##  - Median personal earnings of all workers with earnings ages 16 and older -- S2001_C01_002
+##  - Percent of cost-burdened renters -- B25070_007+B25070_008+B25070_009+B25070_010/B25070_001
+##  - Home ownership rates -- B25003_002/B25003_002
+##  - Housing vacant unitss -- B25002_003/B25002_001
 
 
 # ....................................................
@@ -107,7 +110,16 @@ varlist_s = c("S1701_C03_001", # povrate
             "S2001_C01_002")   # earn
 
 varlist_b = c("B01003_001", # totalpop
-             "B19083_001")  # gini
+              "B19083_001",  # gini
+              "B25070_007",  # 30-35 rent burdened
+              "B25070_008",  # 35-40 rent burdened
+              "B25070_009",  # 40-50 rent burdened
+              "B25070_010",  # 50+ rent burdened
+              "B25070_001",  # all renters
+              "B25003_002",  # owner-occupied housing units
+              "B25003_001",  # occupied housing units
+              "B25002_003",  # vacant housing units
+              "B25002_001")  # housing units
 
 # pull variables
 tract_data_s <- get_acs(geography = "tract",
@@ -140,8 +152,34 @@ names(tract_data_s) = c("GEOID", "NAME",
                         "earnE", "earnM")
 
 names(tract_data_b) = c("GEOID", "NAME",  
-                        "totalpopE", "totalpopM",
-                        "giniE", "giniM")
+                         "totalpopE", "totalpopM",
+                         "giniE", "giniM",
+                         "rent30E", "rent30M",
+                         "rent35E", "rent35M",
+                         "rent40E", "rent40M",
+                         "rent50E", "rent50M",
+                         "rentallE", "rentallM",
+                         "ownoccE", "ownoccM",
+                         "occhseE", "occhseM",
+                         "vachseE", "vachseM",
+                         "allhseE", "allhseM")
+
+# Derive some variables
+tract_data_b <- tract_data_b %>% 
+  mutate(rentersumE = (rent30E+rent35E+rent40E+rent50E),
+         rentersumM = (rent30M/1.645)^2 + (rent35M/1.645)^2 + (rent40M/1.645)^2 + (rent50M/1.645)^2,
+         rentersumM = sqrt(rentersumM)*1.645,
+         renter30E = round((rentersumE/rentallE)*100,1),
+         renter30M = moe_prop(rentersumE, rentallE, rentersumM, rentallM),
+         renter30M = round(renter30M*100,1)) %>% 
+  mutate(homeownE = round((ownoccE/occhseE)*100,1),
+         homeownM = moe_prop(ownoccE, occhseE, ownoccM, occhseM),
+         homeownM = round(homeownM*100, 1)) %>% 
+  mutate(vacrateE = round((vachseE/allhseE)*100,1),
+         vacrateM = moe_prop(vachseE, allhseE, vachseM, allhseM),
+         vacrateM = round(vacrateM*100, 1)) %>% 
+  select(-c(rentersumE, rentersumM,rent30E:occhseM))
+
 
 # Get Data
 # pull tables (easier to just pull tables separately)
