@@ -1,7 +1,6 @@
 .httr-oauth
 
 # ignore supplementary folders
-cf/
 data/
 dev/
 tempdata/
@@ -9,7 +8,6 @@ tempdata/
 # ignore data files and image files
 *.RDS
 *.geojson
-*.Rdata
 *.png
 *.Rhistory
 *.Rapp.history
@@ -18,4 +16,3 @@ equity_profile.Rproj
 
 # ignore shinyapps connection
 cville-region/rsconnect/
-cville-region/www/
