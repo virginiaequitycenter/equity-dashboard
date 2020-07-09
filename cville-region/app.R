@@ -35,6 +35,13 @@ race_inc <- mutate(race_inc,
                                      "Multi-racial"="multi",
                                      "White"="white"))
 
+# to ease creation of select/deselect all action
+counties <- levels(factor(tract_data_geo@data$county.nice))
+
+# Define color palettes
+nb.cols <- 10
+mycolors <- colorRampPalette(brewer.pal(8, "YlGnBu"))(nb.cols)
+
 
 # .....................................................................................
 
@@ -57,14 +64,17 @@ ui <- dashboardPage(
       fluidRow(
         box(tags$h3("Regional Indicators"),
             tags$p("Visualizing the greater Charlottesville Region"),
-            tags$br(),
-            
-            selectInput(
+
+            checkboxGroupInput(
               inputId = "geo", 
               label = "Counties",
-              choices = levels(factor(tract_data_geo@data$county.nice)), 
-              selected = levels(factor(tract_data_geo@data$county.nice)), 
-              multiple = T),
+              choices = counties, 
+              selected = counties,
+              inline = TRUE), #checkboxGroup ends
+            actionLink(inputId = "selectall_geo", 
+                       label = "Select/Unselect All Counties"), #selectall end
+            
+            tags$br(),
             tags$p("Select an indicator:"),
             htmlOutput("category"),
             htmlOutput("indicator"),
@@ -162,8 +172,8 @@ ui <- dashboardPage(
 # .....................................................................................
 
 # create server ----
-server <- function(input, output) {
-
+server <- function(input, output, session) {
+  
 # .....................................................................................
   
   # select data sets ----
@@ -207,6 +217,19 @@ server <- function(input, output) {
   # .....................................................................................
   
   # generate UI
+  
+  # Select/Deselect All
+  observe({
+    if(input$selectall_geo == 0) return(NULL)
+    else if (input$selectall_geo%%2 == 0){
+      updateCheckboxGroupInput(session, inputId = "geo", "Counties",
+                               choices = counties, selected = counties,
+                               inline = TRUE)    }else{
+                                 updateCheckboxGroupInput(session, "geo", "Counties",
+                                                          choices = counties, inline = TRUE)
+                               }
+  })
+  
   # categories of indicators
   output$category <- renderUI({
     selectInput(
@@ -456,6 +479,10 @@ server <- function(input, output) {
     sabselem_sf %>% filter(county %in% data_geo()$COUNTYFP[data_geo()$county.nice %in% input$geo])
   })
   
+  mag <- reactive({
+    mcd_sf %>% filter(COUNTYFP %in% data_geo()$COUNTYFP[data_geo()$county.nice %in% input$geo])
+  })
+  
   # create map tile layer
   tile_geo <- reactive({
     tile <- switch(input$map_geo,
@@ -477,7 +504,7 @@ server <- function(input, output) {
                   weight = 2,
                   smoothFactor = 0.2,
                   popup = paste0(input$indicator, ": ",d(),  "<br>",
-                                data_geo()$NAME.y[data_geo()$county.nice %in% input$geo & data_geo()$year %in% input$time], "<br>"
+                                data_geo()$NAME[data_geo()$county.nice %in% input$geo & data_geo()$year %in% input$time], "<br>"
                   ),
                   highlight = highlightOptions(
                     weight = 5,
@@ -494,16 +521,26 @@ server <- function(input, output) {
                  color = "blue",
                  popup = paste(schools()$NAME)) %>% 
       addPolygons(data = sabselem(), group="Elem School Zone",
-                  color = "blue", fill = FALSE, weight = 3,
-                  popup = paste(sabselem()$schnam)) %>% 
+                  color = "blue", fill = FALSE, weight = 2,
+                  popup = paste(sabselem()$schnam),
+                  highlight = highlightOptions(weight = 3,
+                                               color = "blue",
+                                               bringToFront = TRUE)) %>% 
+      addPolygons(data = mag(), group="Magesterial Districts",
+                  color = "purple", fill = FALSE, weight = 2,
+                  popup = paste(mag()$NAMELSAD),
+                  highlight = highlightOptions(weight = 3,
+                                               color = "purple",
+                                               bringToFront = TRUE)) %>% 
       addLayersControl(
-            overlayGroups = c("Parks", "Schools", "Elem School Zone"),
+            overlayGroups = c("Parks", "Schools", "Elem School Zone", "Magesterial Districts"),
             options = layersControlOptions(collapsed = FALSE), 
             position = "bottomright"
           ) %>% 
       hideGroup("Parks") %>% 
       hideGroup("Schools") %>% 
       hideGroup("Elem School Zone") %>% 
+      hideGroup("Magesterial Districts") %>% 
       addLegend(pal = pal(),
                 values = as.numeric(d()),
                 position = "topright",
@@ -523,7 +560,7 @@ server <- function(input, output) {
                   weight = 2,
                   smoothFactor = 0.2,
                   popup = paste0(input$indicator2, ": ",d2(),  "<br>",
-                                 data_geo()$NAME.y[data_geo()$county.nice %in% input$geo & data_geo()$year %in% input$time], "<br>"
+                                 data_geo()$NAME[data_geo()$county.nice %in% input$geo & data_geo()$year %in% input$time], "<br>"
                   ),
                   highlight = highlightOptions(
                     weight = 5,
@@ -537,13 +574,27 @@ server <- function(input, output) {
                   popup = paste(parks()$NAME)) %>% 
       addCircles(data =  schools(), group="Schools", 
                  popup = paste(schools()$NAME)) %>% 
+      addPolygons(data = sabselem(), group="Elem School Zone",
+                  color = "blue", fill = FALSE, weight = 2,
+                  popup = paste(sabselem()$schnam),
+                  highlight = highlightOptions(weight = 3,
+                                               color = "blue",
+                                               bringToFront = TRUE)) %>% 
+      addPolygons(data = mag(), group="Magesterial Districts",
+                  color = "purple", fill = FALSE, weight = 2,
+                  popup = paste(mag()$NAMELSAD),
+                  highlight = highlightOptions(weight = 3,
+                                               color = "purple",
+                                               bringToFront = TRUE)) %>% 
       addLayersControl(
-        overlayGroups = c("Parks", "Schools"),
+        overlayGroups = c("Parks", "Schools", "Elem School Zone", "Magesterial Districts"),
         options = layersControlOptions(collapsed = FALSE), 
         position = "bottomright"
       ) %>% 
       hideGroup("Parks") %>% 
       hideGroup("Schools") %>% 
+      hideGroup("Elem School Zone") %>% 
+      hideGroup("Magesterial Districts") %>% 
       addLegend(pal = pal2(),
                 values = as.numeric(d2()),
                 position = "topright",
@@ -562,7 +613,7 @@ server <- function(input, output) {
   
   # .....................................................................................
   # output comparison plot ----
-  output$compare <- renderPlotly({ # add regression line to this
+  output$compare <- renderPlotly({ # add loess line to this
     req(input$indicator2)
     if (!input$indicator2=="None") {
       plot_ly(data=data_geo()@data,
@@ -575,7 +626,7 @@ server <- function(input, output) {
               type = "scatter", mode = "markers", 
               # Set3 has 12 values, which matches the 12 cities/counties
               colors = "Set3", 
-              text=paste0(data_geo()@data[data_geo()$county.nice %in% input$geo,"county.nice"], "<br>",
+              text=paste0(data_geo()$NAME[data_geo()$county.nice %in% input$geo], "<br>",
                           input$indicator, ": ", data_geo()@data[data_geo()$county.nice %in% input$geo,
                                                                      paste(prettytab()[prettytab()$goodname==input$indicator, "varname"])], "<br>",
                          input$indicator2, ": ", data_geo()@data[data_geo()$county.nice %in% input$geo,

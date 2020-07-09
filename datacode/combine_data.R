@@ -2,12 +2,12 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Combine data for shiny app
-# Last updated: 01/17/2020
+# Last updated: 07/08/2020
 ####################################################
 # 1. Load libraries 
 # 2. Load data
 # 3. Merge tract attributes, county attributes
-# 4. Add geography
+# 4. Add geography (parks, schools/attendance zones, mag dist)
 # 5. Read in crosswalk and join
 # 6. Define color palettes
 # 7. Save for app
@@ -19,7 +19,7 @@
 # Libraries
 library(tidyverse)
 library(RColorBrewer)
-library(googlesheets)
+library(googlesheets4)
 library(sf)
 library(tools)
 library(tigris)
@@ -54,6 +54,7 @@ parks_sf <- st_read("data/parks_sf.geojson")
 schools_sf <- st_read("data/schools_sf.geojson") # may want to segment by type (public, private)
 sabselem_sf <- st_read("data/sabselem_sf.geojson")
 sabshigh_sf <- st_read("data/sabshigh_sf.geojson")
+mcd_sf <- st_read("data/mcd_sf.geojson")
 # other files as needed: polygons and points
 
 ccode <- read_csv("datacode/county_codes.csv")
@@ -118,16 +119,17 @@ county_data <- county_data %>%
 # 3. Read in crosswalk and join ----
 # read pretty table: contains better variable lables, sources, and descriptions
 # gs_auth(new_user = TRUE)
-prettytab <- gs_title("prettytable")
-pretty <- gs_read(prettytab, ws = "acs_tract")
+
+googlesheets4::gs4_deauth()
+url_sheet <- "https://docs.google.com/spreadsheets/d/1hwR-U4ykkT4s-ZGaBXhBOaCt78ull4DT2kH51d-7Phg/edit?usp=sharing"
+# prettytab <- gs_title("prettytable")
+pretty <- googlesheets4::read_sheet(url_sheet, sheet = "acs_tract")
 pretty$goodname <- toTitleCase(pretty$description)
 
-# prettytab <- gs_title("prettytable")
-pretty2 <- gs_read(prettytab, ws = "acs_county")
+pretty2 <- googlesheets4::read_sheet(url_sheet, sheet = "acs_county")
 pretty2$goodname <- toTitleCase(pretty2$description)
 
-# prettytab <- gs_title("prettytable")
-pretty3 <- gs_read(prettytab, ws = "acs_blockgroup")
+pretty3 <- googlesheets4::read_sheet(url_sheet, sheet = "acs_blockgroup")
 pretty3$goodname <- toTitleCase(pretty3$description)
 
 # join pretty names to existing tract data
@@ -163,6 +165,7 @@ geo <- tracts(state = 'VA', county = region) # from tigris
 # join coordinates to data
 tract_data_geo <- merge(geo, tract_data, by = "GEOID", duplicateGeoms = TRUE) # from sp -- keep all obs (full_join)
 # tract_data_geo2 <- geo_join(geo, tract_data, by = "GEOID") # from sf -- keep only 2017 obs (left_join)
+names(tract_data_geo@data)[names(tract_data_geo@data)=="NAME.y"] <- "NAME"
 
 # add centroid coordinates for tract polygons: from geosphere
 # as possible way of visualizing/layering a second attribute
@@ -178,6 +181,8 @@ counties_geo <- counties_geo %>% subset(COUNTYFP %in% region)
 # join coordinates to data
 county_data_geo <- merge(counties_geo, county_data, by = "GEOID", duplicateGeoms = TRUE) # from sp -- keep all obs (full_join)
 # county_data_geo2 <- geo_join(counties_geo, county_data, by = "GEOID") # from sf -- keep only 2017 obs (left_join)
+# rename for consistency (NAME references geo label in for each geography level)
+names(county_data_geo@data)[names(county_data_geo@data)=="NAME.y"] <- "NAME"
 
 # add centroid coordinates for tract polygons
 # as possible way of visualizing/layering a second attribute
@@ -216,10 +221,11 @@ mycolors <- colorRampPalette(brewer.pal(8, "YlGnBu"))(nb.cols)
 save.image(file = "data/combine_data.Rdata") # for updates
 # load("data/combine_data.Rdata")
 
-rm(ccode, geo, blkgrp_geo, life_exp_tract, life_exp_county, prettytab, seg_county, 
+rm(ccode, geo, blkgrp_geo, life_exp_tract, life_exp_county, seg_county, 
    county_data_time, tract_data_time, tab, tab2, tab3, region, move_last)
 
 save.image(file = "data/app_data.Rdata") 
+save.image(file = "cville-region/www/app_data.Rdata")
 # load("data/app_data.Rdata")
 
 
