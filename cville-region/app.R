@@ -6,6 +6,7 @@ library(shiny)
 library(shinydashboard)
 library(shinyWidgets)
 library(shinythemes)
+library(shinyhelper)
 
 library(tidyverse)
 library(RColorBrewer)
@@ -67,29 +68,74 @@ ui <- dashboardPage(
 
             checkboxGroupInput(
               inputId = "geo", 
-              label = "Counties",
+              label = "Counties", 
               choices = counties, 
               selected = counties,
-              inline = TRUE), #checkboxGroup ends
-            actionLink(inputId = "selectall_geo", 
-                       label = "Select/Unselect All Counties"), #selectall end
-            
+              inline = TRUE) %>%  #checkboxGroup ends
+              helper(type = "inline",
+                     icon = "info-circle",
+                     content = c("<b>Counties:</b> select one or more counties of interest to view. The localities selected appear on the map and as observations in the figures below. Use the Select/Deselect All button below to make many changes quickly."),
+                     size = "m"),
+              actionButton(inputId = "selectall_geo", 
+                       label = "Select/Unselect All"),  #selectall end
+
             tags$br(),
-            tags$p("Select an indicator:"),
-            htmlOutput("category"),
-            htmlOutput("indicator"),
-            htmlOutput("indicator2"),
-            htmlOutput("time"),
+            tags$br(),
             radioButtons(inputId = "df_geo",
                          label = "Select a Geographic Level:",
                          choices = c("County", "Census Tract", "Block Group"),
                          selected = "County",
-                         inline = TRUE),
+                         inline = TRUE) %>% 
+              helper(type = "inline",
+                     title = "Geographic Level",
+                     icon = "info-circle",
+                     content = c("View indicators at the county level, the census tract level, or the block group level. Some indicators are only available at the tract or locality level.",
+                                 "<b>County:</b> The counties and cities within the region.", "",
+                                 "<b>Census Tract:</b> The Census Tract is an area roughly equivalent to a neighborhood generally encompassing between 2,500 to 8,000 people. They are designed to be relatively homogeneous with respect to population characteristics, economic status, and living conditions.", "",
+                                 "<b>Block Group:</b> The block group is a cluster of adjacent census blocks within a census tract. Block groups generally contain between 600 and 3,000 people. This is the smallest geographical unit for which the census publishes sample data."),
+                     size = "m"),
+            
+            htmlOutput("category") %>% 
+              helper(type = "inline",
+                     inputId = "category",
+                     icon = "info-circle",
+                     content = c("There are 30+ indicators currently available, with more in the works. You may find filtering the available indicators to a specific category helpful to view included measures or locate a measure of interest. Selecting a category will limit the choice of indicators in the Primary and Secondary Indicator fields.",
+                                 "<b>Health:</b> Health insurance rates and life expectancy.", "",
+                                 "<b>Housing:</b> Number and rates of vacant housing, home ownership rates, percent rent burdened.", "",
+                                 "<b>Indices:</b> Measures derived from combined indicators including human development index, gini inequality index, and measures of residential dissimilarity.", "",
+                                 "<b>Jobs, Wages & Income:</b> Median household income and personal earnings, poverty and unemployment rates.", "",
+                                 "<b>People:</b> Basic demographics including total population, racial and ethnic populations, populations by age group.", "",
+                                 "<b>Youth & Education:</b> Educational attainment, school enrollment, child poverty rates."),
+                     size = "m"),
+      
+            htmlOutput("indicator") %>% 
+              helper(type = "inline",
+                     inputId = "indicator",
+                     icon = "info-circle",
+                     content = c("Select an indicator to view on the Primary map. The distribution of the selected indicator will also be plotted below."),
+                     size = "m"),
+            htmlOutput("indicator2") %>% 
+              helper(type = "inline",
+                     inputId = "indicator2",
+                     icon = "info-circle",
+                     content = c("Select an indicator to view on the Secondary map. The distribution of the selected indicator will also be plotted below, including a plot showing the correlation with the Primary indicator."),
+                     size = "m"),
+            htmlOutput("time") %>% 
+              helper(type = "inline",
+                     inputId = "time",
+                     icon = "info-circle",
+                     content = c("<b>Under Development.</b> Some indicators are available for multiple years. Select the year you wish to view. Currently, over time data is only present for total population and population by race or ethnicity."),
+                     size = "m"),
             radioButtons(inputId = "map_geo",
                          label = "Select a Base Map:",
                          choices = c("Minimal", "Detailed"),
                          selected = "Minimal",
-                         inline = TRUE),
+                         inline = TRUE) %>% 
+              helper(type = "inline",
+                     inputId = "map_geo",
+                     icon = "info-circle",
+                     content = c("Select a base map. The detailed map will show roads and other features more clearly, but viewers may find the detail distracting."),
+                     size = "m"),
             width=4), 
         
               tabBox(tabPanel("Map of Primary Indicator", 
@@ -107,27 +153,54 @@ ui <- dashboardPage(
             width=8)), # fluid row
 
       fluidRow(
-        box(strong(textOutput("ind1_name")), 
+        box(title = "Indicator Source & Definition",
+                     strong(textOutput("ind1_name")), 
             textOutput("ind1_abt"), tags$br(),
             strong(textOutput("ind2_name")), 
             textOutput("ind2_abt"),
             width=4),
         tabBox(width=8,
           tabPanel("Distribution",
-                   textOutput("histtitle"), 
+                   textOutput("histtitle") %>% 
+                     helper(type = "inline",
+                            title = "Distribution",
+                            icon = "question-circle",
+                            content = c("The distribution, or histogram, shows how often each value of an indicator occurs in the selected data (defined by locality and geography level). The distribution quickly shows the minimum and maximum values as well as the range of the most common values of an indicator."),
+                            size = "m"),
                    plotlyOutput("hist"),
-                   textOutput("source_b")),
+                   textOutput("source_b")), 
           tabPanel("Compare", 
-                   textOutput("comptitle"), 
+                   textOutput("comptitle") %>% 
+                     helper(type = "inline",
+                            title = "Compare",
+                            icon = "question-circle",
+                            content = c("The comparison, or scatterplot, shows the correlation of the primary and secondary indicators across geographic units; this helps us see if two indicators are associated and, if so, how -- e.g., as the value of the primary indicator increases, does the value of the secondary indicator notably increase or decrease. It can also help us locate geographic units that have extreme values on both measures."),
+                            size = "m"),
                    plotlyOutput("compare"),
                    textOutput("source_c")), 
           tabPanel("By Race", 
-                   textOutput("racetitle"), 
+                   textOutput("racetitle") %>% 
+                     helper(type = "inline",
+                            title = "By Race",
+                            icon = "question-circle",
+                            content = c("<b>Under Development</b>. The comparison by race is intended to show, where available, how an indicator like household income differs by racial and ethnic populations. Currently only available when Median Household Income is selected as the primary indicator."),
+                            size = "m"),
                    plotlyOutput("byrace"))
           )
       
       ), # fluid row
       fluidRow(
+        box(tags$h2(tags$a(href = "http://virginiaequitycenter.org/", tags$img(height = 80, src = "UVAEQUITYCENTER.jpeg"), "Equity Center")),
+            tags$p("The Equity Center works to tangibly redress racial and socioeconomic inequality in 
+                   university communities by advancing a transformative approach to the fundamental 
+                   research mission, which will, in turn, reform institutional values, pedagogy, 
+                   and operations."),
+            tags$p("The Democratization of Data Initiative is working with the UVA Library, the CommPAS Lab,
+                   and the broader regional community to co-create a 
+                   comprehensive Equity Atlas, which will aim to be inclusive of an open-source 
+                   platform that makes data and information that the community wants to know about 
+                   itself broadly available for use in the pursuit of equity throughout the region.")),
+
         box(tags$a(href = "http://commpas-lab.mystrikingly.com",
                    tags$img(height = 80, src = "three-line-bw.png")),
         tags$p("The Community Politics, Analytics and Strategy Lab (CommPAS) 
@@ -140,20 +213,11 @@ ui <- dashboardPage(
                                where they learn about local challenges while developing and 
                                applying their policy and data science skills in the service of 
                                our community partners."), 
-        tags$p("Dashboard Creators: Charlotte McClintock, Michele Claibourn"),
-        tags$p("Contributors: Clay Ford"),
+        tags$p("Dashboard Creators: Michele Claibourn, Charlotte McClintock"),
+        tags$p("Contributors: Clay Ford, Hannah Lewis"),
         tags$div(style="display: inline-block;vertical-align:top;", tags$p("We welcome feedback and suggestions at")),
-        tags$div(style="display: inline-block;vertical-align:top;", tags$a(href="mailto:commpaslab@virginia.edu", tags$p("commpaslab@virginia.edu")))),
+        tags$div(style="display: inline-block;vertical-align:top;", tags$a(href="mailto:commpaslab@virginia.edu", tags$p("commpaslab@virginia.edu"))))
         
-        box(tags$a(href = "http://virginiaequitycenter.org/", tags$h2("Equity Center")),
-            tags$p("The Equity Center will tangibly redress racial and socioeconomic inequality in 
-                   university communities by advancing a transformative approach to the fundamental 
-                   research mission, which will, in turn, reform institutional values, pedagogy, 
-                   and operations."),
-            tags$p("Within the Democratization of Data Initiative, the Equity Center will co-create a 
-                   comprehensive Equity Atlas, which will aim to be inclusive of an open-source 
-                   platform that makes data and information that the community wants to know about 
-                   itself broadly available for use in the pursuit of equity throughout the region."))
         ) # row close
       ), # tab item close
      
@@ -175,6 +239,10 @@ ui <- dashboardPage(
 server <- function(input, output, session) {
   
 # .....................................................................................
+  
+  # uses 'helpfiles' directory by default
+  # in this example, we use the withMathJax parameter to render formulae
+  observe_helpers()
   
   # select data sets ----
   # selected geo dataset
@@ -216,7 +284,7 @@ server <- function(input, output, session) {
   
   # .....................................................................................
   
-  # generate UI
+  # generate UI ----
   
   # Select/Deselect All
   observe({
@@ -234,7 +302,7 @@ server <- function(input, output, session) {
   output$category <- renderUI({
     selectInput(
       inputId = "category", 
-      label = "Category of Indicator:",
+      label = "Limit Indicator by Category",
       choices = levels(factor(prettytab()$group)), 
       selected = levels(factor(prettytab()$group)),
       multiple = T)
@@ -277,7 +345,7 @@ server <- function(input, output, session) {
   
   output$time <- renderUI({
     sliderTextInput(inputId = "time", 
-                    label = "",
+                    label = "Select a Year",
                     choices = years_avail(),
                     selected = years_avail()[length(years_avail())],
                     animate=F,
