@@ -5,10 +5,9 @@ data/
 dev/
 tempdata/
 
-# ignore data files and image files
+# ignore data files 
 *.RDS
 *.geojson
-*.png
 *.Rhistory
 *.Rapp.history
 equity_profile.Rproj
