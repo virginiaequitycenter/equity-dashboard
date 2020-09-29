@@ -27,7 +27,7 @@
 library(tidyverse)
 library(tidycensus)
 
-ccode <- read_csv("code/county_codes.csv")
+ccode <- read_csv("datacode/county_codes.csv")
 region <- ccode$code # list of desired counties
 
 
@@ -39,23 +39,23 @@ region <- ccode$code # list of desired counties
 # download.file(url, destfile="tempdata/va_usasleep.csv", method="libcurl")
 
 # read data and rename
-life_exp <- read_csv("tempdata/va_usasleep.csv")
-names(life_exp) <- c("geoid", "state", "county", "tract", "life_exp", "se", "flag")
+lifeexp <- read_csv("tempdata/va_usasleep.csv")
+names(lifeexp) <- c("geoid", "state", "county", "tract", "life_exp", "se", "flag")
 
 # b. Limit to region and derive metrics ----
-life_exp <- life_exp %>% 
+lifeexp <- lifeexp %>% 
   filter(county %in% region) %>% # 5 missing tracts (80 of 85)
-  rename(life_expE = life_exp,
+  rename(lifeexpE = life_exp,
          locality = county) %>% 
-  mutate(life_expM = 1.64*se,
+  mutate(lifeexpM = 1.64*se,
          year = "2018") %>% 
   select(-se, -flag)
 
 # check
-summary(life_exp)
+summary(lifeexp)
 
 # c. save ----
-saveRDS(life_exp, file = "data/tract_life_exp.RDS") 
+saveRDS(lifeexp, file = "data/tract_life_exp.RDS") 
 # life_exp <- readRDS("data/tract_life_exp.RDS")
 
 

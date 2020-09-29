@@ -41,12 +41,12 @@ blkgrp_data <- readRDS("data/blkgrp_data.RDS")
 # tract level ACS
 tract_data <- readRDS("data/tract_data.RDS")
 tract_data_time <- readRDS("data/tract_data_time.RDS")
-life_exp_tract <- readRDS("data/tract_life_exp.RDS")
+lifeexp_tract <- readRDS("data/tract_life_exp.RDS")
 
 # county level ACS
 county_data <- readRDS("data/county_data.RDS")
 county_data_time <- readRDS("data/county_data_time.RDS")
-life_exp_county <- readRDS("data/county_life_exp.RDS")
+lifeexp_county <- readRDS("data/county_life_exp.RDS")
 seg_county <- readRDS("data/seg_county.RDS")
 
 # points and polygons
@@ -68,16 +68,16 @@ tract_data <- bind_rows(tract_data, tract_data_time)
 county_data <- bind_rows(county_data, county_data_time)
 
 # add life expectancy by tract
-life_exp_tract <- life_exp_tract %>% select(geoid, year, life_expE, life_expM) %>% 
+lifeexp_tract <- lifeexp_tract %>% select(geoid, year, lifeexpE, lifeexpM) %>% 
   mutate(geoid = as.character(geoid))
 
 tract_data <- tract_data %>% 
-  left_join(life_exp_tract, by = c("GEOID" = "geoid", "year" = "year")) %>% 
+  left_join(lifeexp_tract, by = c("GEOID" = "geoid", "year" = "year")) %>% 
   select(move_last(., c("state", "locality", "tract"))) 
 
 # add life expectancy by county
 county_data <- county_data %>% 
-  left_join(life_exp_county, by = c("GEOID" = "FIPS", "year" = "year")) %>% 
+  left_join(lifeexp_county, by = c("GEOID" = "FIPS", "year" = "year")) %>% 
   rename(locality = "locality.x") %>% select(-locality.y) %>% 
   select(move_last(., c("state", "locality"))) 
 
@@ -90,7 +90,7 @@ county_data <- county_data %>%
 # "goalposts" defined in methodology: http://measureofamerica.org/Measure_of_America2013-2014MethodNote.pdf
 # earnings goalposts are adjusted for inflation -- set to 2015 values
 tract_data <- tract_data %>% 
-  mutate(hlth_index = ( (life_expE-66) / (90-66) * 10),
+  mutate(hlth_index = ( (lifeexpE-66) / (90-66) * 10),
          inc_index = ( (log(earnE)-log(15776.86)) / (log(66748.26)-log(15776.86)) * 10),
          attain_index = ( (((hsmoreE/100 + bamoreE/100 + gradmoreE/100)-0.5)/ (2-0.5)) *10),
          enroll_index = (schlE-60)/(95-60)*10,
@@ -103,7 +103,7 @@ tract_data <- tract_data %>%
 
 # add hd_index to county
 county_data <- county_data %>% 
-  mutate(hlth_index = ( (life_expE-66) / (90-66) * 10),
+  mutate(hlth_index = ( (lifeexpE-66) / (90-66) * 10),
          inc_index = ( (log(earnE)-log(15776.86)) / (log(66748.26)-log(15776.86)) * 10),
          attain_index = ( (((hsmoreE/100 + bamoreE/100 + gradmoreE/100)-0.5)/ (2-0.5)) *10),
          enroll_index = (schlE-60)/(95-60)*10,
@@ -164,14 +164,14 @@ geo <- tracts(state = 'VA', county = region) # from tigris
 
 # join coordinates to data
 tract_data_geo <- merge(geo, tract_data, by = "GEOID", duplicateGeoms = TRUE) # from sp -- keep all obs (full_join)
-# tract_data_geo2 <- geo_join(geo, tract_data, by = "GEOID") # from sf -- keep only 2017 obs (left_join)
-names(tract_data_geo@data)[names(tract_data_geo@data)=="NAME.y"] <- "NAME"
+# tract_data_geo2 <- geo_join(geo, tract_data, by = "GEOID") # from sf -- keep only 2018 obs (left_join)
+names(tract_data_geo)[names(tract_data_geo)=="NAME.y"] <- "NAME"
 
-# add centroid coordinates for tract polygons: from geosphere
-# as possible way of visualizing/layering a second attribute
-tract_data_geo$ctr <- centroid(tract_data_geo)
-tract_data_geo$lng <- tract_data_geo$ctr[,1]
-tract_data_geo$lat <- tract_data_geo$ctr[,2]
+# # add centroid coordinates for tract polygons: from geosphere
+# # as possible way of visualizing/layering a second attribute
+# tract_data_geo$ctr <- centroid(tract_data_geo)
+# tract_data_geo$lng <- tract_data_geo$ctr[,1]
+# tract_data_geo$lat <- tract_data_geo$ctr[,2]
 
 
 # get locality polygons
@@ -182,13 +182,13 @@ counties_geo <- counties_geo %>% subset(COUNTYFP %in% region)
 county_data_geo <- merge(counties_geo, county_data, by = "GEOID", duplicateGeoms = TRUE) # from sp -- keep all obs (full_join)
 # county_data_geo2 <- geo_join(counties_geo, county_data, by = "GEOID") # from sf -- keep only 2017 obs (left_join)
 # rename for consistency (NAME references geo label in for each geography level)
-names(county_data_geo@data)[names(county_data_geo@data)=="NAME.y"] <- "NAME"
+names(county_data_geo)[names(county_data_geo)=="NAME.y"] <- "NAME"
 
-# add centroid coordinates for tract polygons
-# as possible way of visualizing/layering a second attribute
-county_data_geo$ctr <- centroid(county_data_geo)
-county_data_geo$lng <- county_data_geo$ctr[,1]
-county_data_geo$lat <- county_data_geo$ctr[,2]
+# # add centroid coordinates for tract polygons
+# # as possible way of visualizing/layering a second attribute
+# county_data_geo$ctr <- centroid(county_data_geo)
+# county_data_geo$lng <- county_data_geo$ctr[,1]
+# county_data_geo$lat <- county_data_geo$ctr[,2]
 
 
 # get block group polygons
@@ -197,17 +197,17 @@ blkgrp_geo <- block_groups(state = 'VA', county = region) # from tigris
 # join coordinates to data
 blkgrp_data_geo <- merge(blkgrp_geo, blkgrp_data, by = "GEOID", duplicateGeoms = TRUE) # from sp -- keep all obs (full_join)
 
-# add centroid coordinates for tract polygons
-# as possible way of visualizing/layering a second attribute
-blkgrp_data_geo$ctr <- centroid(blkgrp_data_geo)
-blkgrp_data_geo$lng <- blkgrp_data_geo$ctr[,1]
-blkgrp_data_geo$lat <- blkgrp_data_geo$ctr[,2]
+# # add centroid coordinates for tract polygons
+# # as possible way of visualizing/layering a second attribute
+# blkgrp_data_geo$ctr <- centroid(blkgrp_data_geo)
+# blkgrp_data_geo$lng <- blkgrp_data_geo$ctr[,1]
+# blkgrp_data_geo$lat <- blkgrp_data_geo$ctr[,2]
 
 
 # ....................................................
-# 5. Metrics for snapshop valuebox ----
+# 5. Metrics for snapshot valuebox ----
 county_dash <- county_data %>% filter(year == "2018") %>% 
-  select(GEOID, county.nice, totalpopE, hd_index, hhincE, cpovrateE, life_expE, renter30E)
+  select(GEOID, county.nice, totalpopE, hd_index, hhincE, cpovrateE, lifeexpE, renter30E)
 
 
 # ....................................................
@@ -221,7 +221,7 @@ mycolors <- colorRampPalette(brewer.pal(8, "YlGnBu"))(nb.cols)
 save.image(file = "data/combine_data.Rdata") # for updates
 # load("data/combine_data.Rdata")
 
-rm(ccode, geo, blkgrp_geo, life_exp_tract, life_exp_county, seg_county, 
+rm(ccode, geo, blkgrp_geo, lifeexp_tract, lifeexp_county, seg_county, 
    county_data_time, tract_data_time, tab, tab2, tab3, region, move_last)
 
 save.image(file = "data/app_data.Rdata") 

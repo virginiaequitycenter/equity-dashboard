@@ -2,9 +2,9 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Acquire Additiona County-Level data
-# Last updated: 01/03/2020
+# Last updated: 09/10/2020
 # Metrics from various sources: 
-# * Life Expectancy Estimates: https://www.countyhealthrankings.org/app/virginia/2019/downloads 
+# * Life Expectancy Estimates: https://www.countyhealthrankings.org/app/virginia/2020/downloads 
 # * Segregation measures (from ACS data, but with more derivation)
 #
 # TO ADD
@@ -30,7 +30,7 @@ library(tidycensus)
 library(sf)
 library(readxl)
 
-ccode <- read_csv("code/county_codes.csv")
+ccode <- read_csv("datacode/county_codes.csv")
 region <- ccode$code # list of desired counties
 
 
@@ -39,23 +39,30 @@ region <- ccode$code # list of desired counties
 # a. acquire ----
 
 # https://www.countyhealthrankings.org/app/virginia/2019/measure/outcomes/147/data
-# url <- "https://www.countyhealthrankings.org/sites/default/files/state/downloads/2019%20County%20Health%20Rankings%20Virginia%20Data%20-%20v1_0.xls"
-# download.file(url, destfile="tempdata/countyhealthrankings2019.xls", method="libcurl")
+# url <- "https://www.countyhealthrankings.org/sites/default/files/media/document/state/downloads/2019%20County%20Health%20Rankings%20Virginia%20Data%20-%20v1_0.xls" # 2019
+# url <- "https://www.countyhealthrankings.org/sites/default/files/media/document/2020%20County%20Health%20Rankings%20Virginia%20Data%20-%20v1_0.xlsx" # 2020
+# download.file(url, destfile="tempdata/countyhealthrankings2020.xlsx", method="libcurl")
 
 # read data
-life_exp <- read_excel("tempdata/countyhealthrankings2019.xls", sheet = "Additional Measure Data", skip = 1)
+life_exp <- read_excel("tempdata/countyhealthrankings2020.xlsx", sheet = "Additional Measure Data", skip = 1)
 
 # b. reduce (consider using more from this source), rename, derive
 life_exp <- life_exp %>% 
-  select(FIPS, locality = County, life_expE = `Life Expectancy`, 
-         life_exp_lb = `95% CI - Low...5`, life_exp_ub = `95% CI - High...6`,
-         life_exp_white = `Life Expectancy (White)`, life_exp_black = `Life Expectancy (Black)`,
-         life_exp_ltnx = `Life Expectancy (Hispanic)`) %>% 
-  mutate(life_expM = (life_exp_ub-life_exp_lb)/2,
+  select(FIPS, locality = County, 
+         lifeexpE = `Life Expectancy`, lifeexp_lb = `95% CI - Low...5`, lifeexp_ub = `95% CI - High...6`,
+         lifeexp_whiteE = `Life Expectancy (White)`, lifeexp_white_lb = `Life Expectancy (White) 95% CI - Low`, lifeexp_white_ub = `Life Expectancy (White) 95% CI - High`,
+         lifeexp_blackE = `Life Expectancy (Black)`, lifeexp_black_lb = `Life Expectancy (Black) 95% CI - Low`, lifeexp_black_ub = `Life Expectancy (Black) 95% CI - High`,
+         lifeexp_ltnxE = `Life Expectancy (Hispanic)`, lifeexp_ltnx_lb = `Life Expectancy (Hispanic) 95% CI - Low`, lifeexp_ltnx_ub = `Life Expectancy (Hispanic) 95% CI - High`,
+         lifeexp_asianE = `Life Expectancy (Asian)`, lifeexp_asian_lb = `Life Expectancy (Asian) 95% CI - Low`, lifeexp_asian_ub = `Life Expectancy (Asian) 95% CI - High`) %>% 
+  mutate(lifeexpM = (lifeexp_ub-lifeexp_lb)/2,
+         lifeexp_whiteM = (lifeexp_white_ub-lifeexp_white_lb)/2,
+         lifeexp_blackM = (lifeexp_black_ub-lifeexp_black_lb)/2,
+         lifeexp_ltnxM = (lifeexp_ltnx_ub-lifeexp_ltnx_lb)/2,
+         lifeexp_asianM = (lifeexp_asian_ub-lifeexp_asian_lb)/2,
          fips = str_remove(FIPS, "51"),
          year = "2018") %>% 
   mutate_if(is.numeric, round, 1) %>% 
-  select(FIPS, fips, locality, year, life_expE, life_expM, life_exp_black, life_exp_ltnx, life_exp_white)
+  select(FIPS, fips, locality, year, lifeexpE, lifeexpM, lifeexp_blackE, lifeexp_blackM, lifeexp_ltnxE, lifeexp_ltnxM, lifeexp_whiteE, lifeexp_whiteM, lifeexp_asianE, lifeexp_asianM)
 
 # c. Limit to region 
 life_exp <- life_exp %>% 
