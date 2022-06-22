@@ -2,6 +2,7 @@
 data/
 dev/
 tempdata/
+datatrends/
 
 # ignore data files
 *.RDS
