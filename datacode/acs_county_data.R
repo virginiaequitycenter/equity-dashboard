@@ -2,7 +2,7 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Acquire ACS data
-# Last updated: 01/24/2020
+# Last updated: 03/12/2021
 # Metrics from ACS (in common with tract level): 
 # * Total population
 # * Poverty, child poverty 
@@ -18,7 +18,7 @@
 # Metrics specific to locality level (from Decennial or ACS):
 # * Median HH Income by Race/Ethnicity
 # 
-# Based on: ACS 2014-2018 
+# Based on: ACS 2015-2019 
 # Geography: Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene, Louisa, 
 #     Fluvanna, Nelson, Buckingham, Madison, Orange
@@ -133,7 +133,7 @@ county_data_s <- get_acs(geography = "county",
                         state = "VA", 
                         county = region, 
                         survey = "acs5",
-                        year = 2018, 
+                        year = 2019, 
                         output = "wide")
 
 county_data_b <- get_acs(geography = "county",
@@ -141,7 +141,7 @@ county_data_b <- get_acs(geography = "county",
                         state = "VA", 
                         county = region, 
                         survey = "acs5",
-                        year = 2018, 
+                        year = 2019, 
                         output = "wide")
 
 # rename variables
@@ -194,21 +194,21 @@ county_race <- get_acs(geography = "county",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2018)
+          year = 2019)
 
 county_age <- get_acs(geography = "county", 
           table = "S0101", 
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2018)
+          year = 2019)
 
 county_enroll <- get_acs(geography = "county", 
           table = "S1401", 
           state = "VA", 
           county = region, 
           survey = "acs5", 
-          year = 2018)
+          year = 2019)
 
 
 # ....................................................
@@ -224,7 +224,7 @@ county_hhinc_race <- get_acs(geography = "county",
                              state = "VA",
                              county = region,
                              survey = "acs5",
-                             year = 2018,
+                             year = 2019,
                              output = "wide")
 
 names(county_hhinc_race) = c("GEOID", "NAME",
@@ -267,7 +267,7 @@ county_age65 <- county_age %>%
   select(-variable)
 
 # tract_race: all groups present as rows in the table
-#             but other race and native hawaiian/pacific islander combined
+#             some other race and native hawaiian/pacific islander combined
 #             due to very small values
 county_white <- county_race %>% 
   filter(variable == "DP05_0077P") %>% 
@@ -353,7 +353,7 @@ county_data <- county_data_s %>%
 
 county_data <- county_data %>% 
   mutate(geoid = GEOID,
-         year = "2018") %>% 
+         year = "2019") %>% 
   separate(geoid, into = c("state", "locality"), 
            sep = c(2)) %>% 
   select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, indigE, indigM, othraceE, othraceM, multiE, multiM, ltnxE, ltnxM, everything())

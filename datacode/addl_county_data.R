@@ -2,7 +2,7 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Acquire Additiona County-Level data
-# Last updated: 09/10/2020
+# Last updated: 03/12/2021
 # Metrics from various sources: 
 # * Life Expectancy Estimates: https://www.countyhealthrankings.org/app/virginia/2020/downloads 
 # * Segregation measures (from ACS data, but with more derivation)
@@ -60,7 +60,7 @@ life_exp <- life_exp %>%
          lifeexp_ltnxM = (lifeexp_ltnx_ub-lifeexp_ltnx_lb)/2,
          lifeexp_asianM = (lifeexp_asian_ub-lifeexp_asian_lb)/2,
          fips = str_remove(FIPS, "51"),
-         year = "2018") %>% 
+         year = "2019") %>% 
   mutate_if(is.numeric, round, 1) %>% 
   select(FIPS, fips, locality, year, lifeexpE, lifeexpM, lifeexp_blackE, lifeexp_blackM, lifeexp_ltnxE, lifeexp_ltnxM, lifeexp_whiteE, lifeexp_whiteM, lifeexp_asianE, lifeexp_asianM)
 
@@ -79,8 +79,8 @@ saveRDS(life_exp, file = "data/county_life_exp.RDS")
 # ....................................................
 # 3. Segregation measures ----
 # a. acquire tract data ----
-race_table18 <-get_acs(geography = "tract", 
-                        year=2018, 
+race_table19 <-get_acs(geography = "tract", 
+                        year=2019, 
                         state = "VA",
                         table = "B03002", 
                         survey = "acs5",
@@ -89,7 +89,7 @@ race_table18 <-get_acs(geography = "tract",
                         cache_table = T)
 
 # rename
-seg_tract <- race_table18 %>%
+seg_tract <- race_table19 %>%
   mutate(white = B03002_003E,
          black = B03002_004E,
          asian = B03002_006E,
@@ -98,15 +98,15 @@ seg_tract <- race_table18 %>%
          multi = B03002_009E,
          hisp = B03002_012E, 
          total = B03002_001E,
-         year = 2018,
+         year = 2019,
          state = substr(GEOID, 1,2),
          county = substr(GEOID, 3,5),
          tract = substr(GEOID, 6,9)) %>% 
   select(GEOID, white, black, indig, asian, other, multi, hisp, total, year, state, county, tract) 
 
 # b. acquire county data ----
-race_table18 <- get_acs(geography = "county", 
-                        year=2018, 
+race_table19 <- get_acs(geography = "county", 
+                        year=2019, 
                         state = "VA",
                         table = "B03002", 
                         survey = "acs5",
@@ -115,7 +115,7 @@ race_table18 <- get_acs(geography = "county",
                         cache_table = T)
 
 # rename
-seg_county <- race_table18 %>%
+seg_county <- race_table19 %>%
   mutate(cowhite = B03002_003E,
          coblack = B03002_004E,
          coasian = B03002_006E,
@@ -124,7 +124,7 @@ seg_county <- race_table18 %>%
          comulti = B03002_009E,
          cohisp = B03002_012E, 
          cototal = B03002_001E,
-         year = "2018",
+         year = "2019",
          state = substr(GEOID, 1,2),
          county = substr(GEOID, 3,5)) %>% 
   select(GEOID, cowhite, coblack, coindig, coasian, coother, comulti, cohisp, cototal, year, state, county) 
@@ -185,7 +185,7 @@ seg_county <- dissim_wb %>%
 # round
 seg_county <- seg_county %>% 
   mutate_if(is.numeric, round, 3) %>% 
-  mutate(year = "2018")
+  mutate(year = "2019")
 
 # check
 summary(seg_county)

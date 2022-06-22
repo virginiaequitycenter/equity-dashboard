@@ -22,7 +22,7 @@ These are intended to provide an example of what that could look like. If we dec
 
 * [Charlottesville Child Welfare Study.](https://doi.org/10.18130/v3-1j50-3z57) Michele P. Claibourn, Charlotte McClintock et al. July 2018. Prepared by the Public Interest Data Lab for the Charlottesville Department of Social Services, Charlottesville, VA. University of Virginia.
 
-### Loca Equity-related Resources
+### Local Equity-related Resources
 
 * [Determined: Stories of resilience in a broken ecosystem](https://www.cvilletomorrow.org/articles/determined-stories-of-resilience-in-a-broken-ecosystem/). Jordy Yager and Sarad Davenport. June 2020.
 

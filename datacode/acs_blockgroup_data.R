@@ -2,7 +2,7 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Acquire ACS data
-# Last updated: 01/24/2020
+# Last updated: 03/12/2021
 # Metrics from ACS (in common with locality level): 
 # * Total population
 # * Poverty, child poverty 
@@ -15,7 +15,7 @@
 # * Median personal earnings
 # * Net school enrollment
 #
-# Based on: ACS 2014-2018 
+# Based on: ACS 2015-2019 
 # Geography: Blogk groups in Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene, Louisa, 
 #     Fluvanna, Nelson, Buckingham, Madison, Orange
@@ -121,7 +121,7 @@ blkgrp_data_b <- get_acs(geography = "block group",
                          state = "VA", 
                          county = region, 
                          survey = "acs5",
-                         year = 2018, 
+                         year = 2019, 
                          output = "wide")
 
 # rename variables
@@ -165,7 +165,7 @@ blkgrp_educ <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2018)
+          year = 2019)
 
 # for race
 blkgrp_race <- get_acs(geography = "block group", 
@@ -173,7 +173,7 @@ blkgrp_race <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2018)
+          year = 2019)
 
 # for blkgrp_unemp
 blkgrp_emp <- get_acs(geography = "block group", 
@@ -181,7 +181,7 @@ blkgrp_emp <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2018)
+          year = 2019)
 
 # for blkgrp_hlthins, blkgrp_pubins
 blkgrp_insur <- get_acs(geography = "block group", 
@@ -189,7 +189,7 @@ blkgrp_insur <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2018)
+          year = 2019)
 
 # for age
 blkgrp_age <- get_acs(geography = "block group", 
@@ -197,7 +197,7 @@ blkgrp_age <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2018)
+          year = 2019)
 
 
 # ....................................................
@@ -425,7 +425,7 @@ blkgrp_data <- blkgrp_data_b %>%
   left_join(blkgrp_age65) 
 
 blkgrp_data <- blkgrp_data %>% 
-  mutate(year = "2018") %>% 
+  mutate(year = "2019") %>% 
   select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, indigE, indigM, othraceE, othraceM, multiE, multiM, ltnxE, ltnxM, everything())
 
 blkgrp_data <- blkgrp_data %>% 

@@ -16,8 +16,9 @@
 # 3. 2010 data
 # 4. 2011-2016 data
 # 5. 2017 data
-# 6. Combine
-# 7. Save
+# 6. Todo: 2018 data
+# 7. Combine
+# 8. Save
 ####################################################
 
 
@@ -59,7 +60,7 @@ library(tidycensus)
 
 # ....................................................
 # 2. Define localities, ----
-ccode <- read_csv("code/county_codes.csv")
+ccode <- read_csv("datacode/county_codes.csv")
 region <- ccode$code # list of desired counties
 
 

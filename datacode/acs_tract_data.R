@@ -2,7 +2,7 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Acquire ACS data
-# Last updated: 01/24/2020
+# Last updated: 03/12/2021
 # Metrics from ACS (in common with locality level): 
 # * Total population
 # * Poverty, child poverty 
@@ -15,7 +15,7 @@
 # * Median personal earnings
 # * Net school enrollment
 
-# Based on: ACS 2014-2018 
+# Based on: ACS 2015-2019 
 # Geography: Tracts in Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene, Louisa, 
 #     Fluvanna, Nelson, Buckingham, Madison, Orange
@@ -127,7 +127,7 @@ tract_data_s <- get_acs(geography = "tract",
                       state = "VA", 
                       county = region, 
                       survey = "acs5",
-                      year = 2018, 
+                      year = 2019, 
                       output = "wide")
 
 tract_data_b <- get_acs(geography = "tract",
@@ -135,7 +135,7 @@ tract_data_b <- get_acs(geography = "tract",
                        state = "VA", 
                        county = region, 
                        survey = "acs5",
-                       year = 2018, 
+                       year = 2019, 
                        output = "wide")
 
 # rename variables
@@ -188,21 +188,21 @@ tract_race <- get_acs(geography = "tract",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2018)
+          year = 2019)
 
 tract_age <- get_acs(geography = "tract", 
           table = "S0101", 
           state = "VA", 
           county = region, 
           survey = "acs5", 
-          year = 2018)
+          year = 2019)
 
 tract_enroll <- get_acs(geography = "tract", 
           table = "S1401", 
           state = "VA", 
           county = region, 
           survey = "acs5", 
-          year = 2018)
+          year = 2019)
 
 
 # ....................................................
@@ -322,7 +322,7 @@ tract_data <- tract_data_s %>%
   left_join(tract_age65) 
 
 tract_data <- tract_data %>% 
-  mutate(year = "2018") %>% 
+  mutate(year = "2019") %>% 
   select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, indigE, indigM, othraceE, othraceM, multiE, multiM, ltnxE, ltnxM, everything())
 
 tract_data <- tract_data %>% 
