@@ -38,6 +38,7 @@ library(tidycensus)
 # acs_var <- load_variables(2017, "acs5/subject", cache = TRUE)
 # acs_var <- load_variables(2017, "acs5/profile", cache = TRUE)
 # dec_var <- load_variables(2010, "sf1", cache = TRUE)
+# acs_var <- load_variables(2020, "acs5", cache = TRUE)
 
 # Variable of interest -
 ##  - Total population -- B01003_001
@@ -150,10 +151,39 @@ county_17 <- county_17 %>%
 
 
 # ....................................................
-# 6. Reduce and combine ----
+# 6. 2020 acs pop and race
+
+varlist_20 <- c("B02001_001", "B02001_002", "B02001_003", "B02001_004", "B02001_005", 
+                "B02001_007", "P005008", "B02001_008", "B03002_001") 
+# totalpop, white, black, indig, asian, oth1, oth2, multi, ltnx
+
+##### Don't know what oth2 is????????
+
+county_20 <- get_decennial(geography = "county",
+                           variables = varlist_20,
+                           state = "VA", 
+                           county = region,
+                           year = 2020, 
+                           output = "wide")
+
+names(county_20) <- c("GEOID", "NAME", "totalpopE", "white", "black", "indig", "asian", "oth1", "oth2", "multi", "ltnx")
+
+county_20 <- county_20 %>% 
+  mutate(whiteE = round((white/totalpopE)*100, 1),
+         blackE = round((black/totalpopE)*100, 1),
+         indigE = round((indig/totalpopE)*100, 1),
+         asianE = round((asian/totalpopE)*100, 1),
+         othraceE = round(((oth1 + oth2)/totalpopE)*100, 1),
+         multiE = round((multi/totalpopE)*100, 1),
+         ltnxE = round((ltnx/totalpopE)*100, 1),
+         year = "2020") %>% 
+  select(GEOID, NAME, year, totalpopE, whiteE, blackE, indigE, asianE, othraceE, multiE, ltnxE)
+
+# ....................................................
+# 7. Reduce and combine ----
 
 # bind each year's file
-county_data_10_17 <- bind_rows(county_10, county_1116, county_17)
+county_data_10_17 <- bind_rows(county_10, county_1116, county_17, county_20)
 
 # add geo variables alrady in tract_data, and round percents
 county_data_10_17 <- county_data_10_17 %>% 
@@ -163,7 +193,7 @@ county_data_10_17 <- county_data_10_17 %>%
 
 
 # ....................................................
-# 7. save ----
+# 8. save ----
 saveRDS(county_data_10_17, file = "data/county_data_time.RDS") 
 # county_data_time <- readRDS("data/county_data_time.RDS")
 

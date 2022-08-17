@@ -3,6 +3,7 @@
 ####################################################
 # Acquire Additiona Tract-Level data
 # Last updated: 03/12/2021
+# New data has not been published since the 2010-2015 estimates as of 07/17/2022
 # Metrics from various sources: 
 # * Small Area Life Expectancy Estimates: https://www.cdc.gov/nchs/nvss/usaleep/usaleep.html 
 # * Segregation measures (from ACS data, but with more derivation)
@@ -35,8 +36,8 @@ region <- ccode$code # list of desired counties
 # 2. Small-area life expectancy estimates ----
 # a. acquire ----
 
-# url <- "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Datasets/NVSS/USALEEP/CSV/VA_A.CSV"
-# download.file(url, destfile="tempdata/va_usasleep.csv", method="libcurl")
+url <- "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Datasets/NVSS/USALEEP/CSV/VA_A.CSV"
+download.file(url, destfile="tempdata/va_usasleep.csv", method="libcurl")
 
 # read data and rename
 lifeexp <- read_csv("tempdata/va_usasleep.csv")
@@ -62,8 +63,8 @@ saveRDS(lifeexp, file = "data/tract_life_exp.RDS")
 # ....................................................
 # 3. Segregation measures ----
 # a. acquire block group data ----
-race_table19 <-get_acs(geography = "block group", 
-                       year = 2019, 
+race_table20 <-get_acs(geography = "block group", 
+                       year = 2020, 
                        state = "VA",
                        county = region, 
                        table = "B03002", 
@@ -73,7 +74,7 @@ race_table19 <-get_acs(geography = "block group",
                        cache_table = T)
 
 # rename
-seg_blkgrp <- race_table19 %>%
+seg_blkgrp <- race_table20 %>%
   mutate(white = B03002_003E,
          black = B03002_004E,
          asian = B03002_006E,
@@ -82,7 +83,7 @@ seg_blkgrp <- race_table19 %>%
          multi = B03002_009E,
          hisp = B03002_012E, 
          total = B03002_001E,
-         year = 2019,
+         year = 2020,
          state = substr(GEOID, 1,2),
          county = substr(GEOID, 3,5),
          tract = substr(GEOID, 6,11),
@@ -90,8 +91,8 @@ seg_blkgrp <- race_table19 %>%
   select(GEOID, white, black, indig, asian, other, multi, hisp, total, year, state, county, tract, blkgrp) 
 
 # b. acquire tract data ----
-race_table19 <- get_acs(geography = "tract", 
-                        year = 2019, 
+race_table20 <- get_acs(geography = "tract", 
+                        year = 2020, 
                         state = "VA",
                         county = region, 
                         table = "B03002", 
@@ -101,7 +102,7 @@ race_table19 <- get_acs(geography = "tract",
                         cache_table = T)
 
 # rename
-seg_tract <- race_table19 %>%
+seg_tract <- race_table20 %>%
   mutate(cowhite = B03002_003E,
          coblack = B03002_004E,
          coasian = B03002_006E,
@@ -110,7 +111,7 @@ seg_tract <- race_table19 %>%
          comulti = B03002_009E,
          cohisp = B03002_012E, 
          cototal = B03002_001E,
-         year = "2019",
+         year = "2020",
          state = substr(GEOID, 1,2),
          county = substr(GEOID, 3,5),
          tract = substr(GEOID, 6,11)) %>% 
@@ -167,7 +168,7 @@ seg_tract <- dissim_wb %>%
 # round
 seg_tract <- seg_tract %>% 
   mutate_if(is.numeric, round, 3) %>% 
-  mutate(year = "2019")
+  mutate(year = "2020")
 
 # check
 summary(seg_tract)
@@ -177,6 +178,7 @@ pairs(seg_tract[2:7])
 saveRDS(seg_tract, file = "data/seg_tract.RDS")
 # seg_tract <- readRDS("data/seg_tract.RDS")
 
+#### HMDA not currently included as of 07/20/22 ##### 
 
 # ....................................................
 # 4. HMDA measures ----

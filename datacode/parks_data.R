@@ -2,7 +2,7 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Acquire Park geometry data
-# Last updated: 10/02/2019
+# Last updated: 07/17/2022
 # From Charlottesville Open Data Portal 
 # * https://opendata.charlottesville.org/
 # From Albemarle  
@@ -39,7 +39,7 @@ cvl_parks_sf <- st_read("https://opendata.arcgis.com/datasets/a13bdf43fff04168b7
 
 
 # b. Albemarle Parks
-download.file(url = "http://www.albemarle.org/gds/gisdata/ParksRec/park_parcels.zip",
+download.file(url = "https://gisweb.albemarle.org/gisdata/ParksRec/park_parcels.zip",
               destfile = "tempdata/park_parcels.zip")
 unzip(zipfile = "tempdata/park_parcels.zip", exdir = "tempdata/park_parcels")
 alb_parks_sf = st_read(dsn = "tempdata/park_parcels/park_parcels.shp")
@@ -48,19 +48,22 @@ alb_parks_sf = st_read(dsn = "tempdata/park_parcels/park_parcels.shp")
 # epsg (SRID):    2284
 # proj4string:    +proj=lcc +lat_1=37.96666666666667 +lat_2=36.76666666666667 +lat_0=36.33333333333334 +lon_0=-78.5 +x_0=3500000.0001016 +y_0=999999.9998983998 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=us-ft +no_defs
 
+# # d. Ragged mountain natural area -- as of 07/20/22, this area is now 
+# owned by Charlottesville City, so it is included in the park data downloaded from 
+# the city 
+# download.file(url = "http://www.albemarle.org/gds/gisdata/ParksRec/ragged_mtn_natural_area.zip",
+#               destfile = "tempdata/ragged_mtn_natural_area.zip")
+# unzip(zipfile = "tempdata/ragged_mtn_natural_area.zip", exdir = "tempdata/ragged_mtn_natural_area")
+# ragged_mtn_sf = st_read(dsn = "tempdata/ragged_mtn_natural_area/ragged_mtn_natural_area.shp")
 
-# c. Ragged mountain natural area
-download.file(url = "http://www.albemarle.org/gds/gisdata/ParksRec/ragged_mtn_natural_area.zip",
-              destfile = "tempdata/ragged_mtn_natural_area.zip")
-unzip(zipfile = "tempdata/ragged_mtn_natural_area.zip", exdir = "tempdata/ragged_mtn_natural_area")
-ragged_mtn_sf = st_read(dsn = "tempdata/ragged_mtn_natural_area/ragged_mtn_natural_area.shp")
 
-
-# d. ivy creek
-download.file(url = "http://www.albemarle.org/gds/gisdata/ParksRec/ivy_creek_natural_area.zip",
-              destfile = "tempdata/ivy_creek_natural_area.zip")
-unzip(zipfile = "tempdata/ivy_creek_natural_area.zip", exdir = "tempdata/ivy_creek_natural_area")
-ivy_creek_sf = st_read(dsn = "tempdata/ivy_creek_natural_area/ivy_creek_natural_area.shp")
+# d. ivy creek -- as of 07/20/22, this data is no longer included on the Albemarle county 
+# because it is owned and controlled by the Ivy Creek Foundation, so I wasn't able to 
+# re-download the data. 
+# download.file(url = "https://gisweb.albemarle.org/gisdata/ParksRec/ParkTrails.zip",
+#               destfile = "tempdata/ivy_creek_natural_area.zip")
+# unzip(zipfile = "tempdata/ivy_creek_natural_area.zip", exdir = "tempdata/ivy_creek_natural_area")
+# ivy_creek_sf = st_read(dsn = "tempdata/ivy_creek_natural_area/ivy_creek_natural_area.shp")
 
 
 # ....................................................
@@ -80,11 +83,11 @@ cvl_parks_sf <- cvl_parks_sf %>%
 alb_parks_sf <- alb_parks_sf %>% 
   mutate(FIPS = "003")
 
-ivy_creek_sf <- ivy_creek_sf %>% 
-  mutate(FIPS = "003")
-
-ragged_mtn_sf <- ragged_mtn_sf %>% 
-  mutate(FIPS = "003")
+# ivy_creek_sf <- ivy_creek_sf %>% 
+#   mutate(FIPS = "003")
+# 
+# ragged_mtn_sf <- ragged_mtn_sf %>% 
+#   mutate(FIPS = "003")
 
 
 # ....................................................

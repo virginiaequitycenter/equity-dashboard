@@ -2,7 +2,8 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Acquire ACS data
-# Last updated: 03/12/2021
+# Last updated: 07/15/2022
+  # Updates include: pulling 2020 ACS data and adding a few more variables 
 # Metrics from ACS (in common with locality level): 
 # * Total population
 # * Poverty, child poverty 
@@ -15,8 +16,8 @@
 # * Median personal earnings
 # * Net school enrollment
 #
-# Based on: ACS 2015-2019 
-# Geography: Blogk groups in Localities in Charlottesville region
+# Based on: ACS 2016-2020 
+# Geography: Block groups in Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene, Louisa, 
 #     Fluvanna, Nelson, Buckingham, Madison, Orange
 #     (include Augusta, Waynesboro, Staunton?)
@@ -42,10 +43,10 @@ library(tidycensus)
 # census_api_key("", install = TRUE, overwrite = TRUE) # add key
 
 # Variable view helper
-# acs_var <- load_variables(2017, "acs5", cache = TRUE)
-# acs_var <- load_variables(2017, "acs5/subject", cache = TRUE)
-# acs_var <- load_variables(2017, "acs5/profile", cache = TRUE)
-# dec_var <- load_variables(2010, "sf1", cache = TRUE)
+# acs_var <- load_variables(2020, "acs5", cache = TRUE)
+# acs_var <- load_variables(2020, "acs5/subject", cache = TRUE)
+# acs_var <- load_variables(2020, "acs5/profile", cache = TRUE)
+# dec_var <- load_variables(2020, "sf1", cache = TRUE)
 
 # Variable of interest -
 ##  - Total population -- B01003_001
@@ -62,23 +63,23 @@ library(tidycensus)
 ##  - Percent Two or more races -- B03002
 ##  - Percent Hispanic or Latino -- B03002
 ##  - Percent unemployment (Population 16 and over) -- B23025
-##  - Percent with health insurance (Civilian noninstitutionalized population) -- B27010
-##  - Percent with public health insurance (Civilian noninstitutionalized population) -- B27010
+##  - Percent with health insurance (Civilian non-institutionalized population) -- B27010
+##  - Percent with public health insurance (Civilian non-institutionalized population) -- B27010
 ##  - Age, population under 18 -- B01001
 ##  - Age, population 18 to 24 -- B01001	
 ##  - Age, 26 to 64 -- B01001
 ##  - Age, 65 and over -- B01001
 ##  - Median personal earnings of all workers with earnings ages 16 and older -- B20002
 ##  - Percent of cost-burdened renters -- B25070_007+B25070_008+B25070_009+B25070_010/B25070_001
-##  - Housing vacant unitss -- B25002_003/B25002_001
+##  - Housing vacant units -- B25002_003/B25002_001
 ##  - Home ownership rates -- B25003_002/B25003_002
+##  - Percent of households who receive cash public assistance/SNAP benefits -- B19058_002
 
-##  - Poverty rate -- NOT AVAILABLE
-##  - Child poverty rate -- NOT AVAILABLE
-##  - Gini Index of Income Inequality -- NOT AVAILABLE
-##  - School enrollment for the population age 3 to 24 -- NOT AVAILABLE
-
-
+## Currently unavailable but may be of interest in the future:
+# B17020_001 - Poverty status in the last 12 months by age
+# B19083_001 - Gini Index of Income Inequality
+# B14001_001 - School enrollment for the population 3 years and over
+# B05002_013 - Number of foreign-born residents (only see this at the tract level)
 
 # ....................................................
 # 2. Define localities, variables, pull tables ----
@@ -112,7 +113,8 @@ varlist_b = c("B01003_001",  # totalpop
               "B25003_002",  # owner-occupied housing units
               "B25003_001",  # occupied housing units
               "B25002_003",  # vacant housing units
-              "B25002_001")  # housing units
+              "B25002_001",  # housing units
+              "B19058_002")  # SNAP Recipients
 
 
 # Pull variables
@@ -121,7 +123,7 @@ blkgrp_data_b <- get_acs(geography = "block group",
                          state = "VA", 
                          county = region, 
                          survey = "acs5",
-                         year = 2019, 
+                         year = 2020, 
                          output = "wide")
 
 # rename variables
@@ -137,7 +139,8 @@ names(blkgrp_data_b) = c("GEOID", "NAME",
                          "ownoccE", "ownoccM",
                          "occhseE", "occhseM",
                          "vachseE", "vachseM",
-                         "allhseE", "allhseM")
+                         "allhseE", "allhseM",
+                         "snapE", "snapM")
                          
 # Derive some variables
 blkgrp_data_b <- blkgrp_data_b %>% 
@@ -155,6 +158,12 @@ blkgrp_data_b <- blkgrp_data_b %>%
          vacrateM = round(vacrateM*100, 1)) %>% 
   select(-c(rentersumE, rentersumM,rent30E:occhseM))
 
+# derive snap variables 
+blkgrp_data_b <- blkgrp_data_b %>% 
+  mutate(perc_snaphseE = round((snapE / allhseE)*100,1),
+         perc_snaphseM = round(moe_prop(snapE, allhseE, snapM, allhseM), 2),
+         .keep = "all")
+
 
 # Get Data
 # pull tables (easier to just pull tables separately)
@@ -165,7 +174,7 @@ blkgrp_educ <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2019)
+          year = 2020)
 
 # for race
 blkgrp_race <- get_acs(geography = "block group", 
@@ -173,7 +182,7 @@ blkgrp_race <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2019)
+          year = 2020)
 
 # for blkgrp_unemp
 blkgrp_emp <- get_acs(geography = "block group", 
@@ -181,7 +190,7 @@ blkgrp_emp <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2019)
+          year = 2020)
 
 # for blkgrp_hlthins, blkgrp_pubins
 blkgrp_insur <- get_acs(geography = "block group", 
@@ -189,7 +198,7 @@ blkgrp_insur <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2019)
+          year = 2020)
 
 # for age
 blkgrp_age <- get_acs(geography = "block group", 
@@ -197,8 +206,7 @@ blkgrp_age <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2019)
-
+          year = 2020)
 
 # ....................................................
 # 3. Reduce and Combine data ----
@@ -425,8 +433,9 @@ blkgrp_data <- blkgrp_data_b %>%
   left_join(blkgrp_age65) 
 
 blkgrp_data <- blkgrp_data %>% 
-  mutate(year = "2019") %>% 
-  select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, indigE, indigM, othraceE, othraceM, multiE, multiM, ltnxE, ltnxM, everything())
+  mutate(year = "2020") %>% 
+  select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, 
+         indigE, indigM, othraceE, othraceM, multiE, multiM, ltnxE, ltnxM, snapE, snapM, everything())
 
 blkgrp_data <- blkgrp_data %>% 
   mutate(geoid = GEOID) %>% 

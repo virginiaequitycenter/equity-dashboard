@@ -144,21 +144,48 @@ tract_17 <- tract_17 %>%
 
 
 # ....................................................
-# 6. Reduce and combine ----
+# 6. 2020 acs pop and race
+
+varlist_20 <- c("B02001_001", "B02001_002", "B02001_003", "B02001_004", "B02001_005", 
+                "B02001_007", "P005008", "B02001_008", "B03002_001") 
+# totalpop, white, black, indig, asian, oth1, oth2, multi, ltnx
+
+##### Don't know what oth2 is????????
+
+tract_20 <- get_decennial(geography = "tract",
+                           variables = varlist_20,
+                           state = "VA", 
+                           county = region,
+                           year = 2020, 
+                           output = "wide")
+
+names(tract_20) <- c("GEOID", "NAME", "totalpopE", "white", "black", "indig", "asian", "oth1", "oth2", "multi", "ltnx")
+
+tract_20 <- tract_20 %>% 
+  mutate(whiteE = round((white/totalpopE)*100, 1),
+         blackE = round((black/totalpopE)*100, 1),
+         indigE = round((indig/totalpopE)*100, 1),
+         asianE = round((asian/totalpopE)*100, 1),
+         othraceE = round(((oth1 + oth2)/totalpopE)*100, 1),
+         multiE = round((multi/totalpopE)*100, 1),
+         ltnxE = round((ltnx/totalpopE)*100, 1),
+         year = "2020") %>% 
+  select(GEOID, NAME, year, totalpopE, whiteE, blackE, indigE, asianE, othraceE, multiE, ltnxE)
+
+# ....................................................
+# 7. Reduce and combine ----
 
 # bind each year's file
-tract_data_10_17 <- bind_rows(tract_10, tract_1116, tract_17)
+tract_data_10_20 <- bind_rows(tract_10, tract_1116, tract_17, tract_20)
 
-# add geo variables alrady in tract_data,  and round percents
-tract_data_10_17 <- tract_data_10_17 %>% 
+# add geo variables alrady in tract_data, and round percents
+tract_data_10_20 <- tract_data_10_20 %>% 
   mutate(geoid = GEOID) %>% 
-  separate(geoid, into = c("state", "locality", "tract"), 
-           sep = c(2,5)) 
+  separate(geoid, into = c("state", "locality"), 
+           sep = c(2)) 
 
 
 # ....................................................
-# 7. save ----
-saveRDS(tract_data_10_17, file = "data/tract_data_time.RDS") 
-# tract_data_time <- readRDS("data/tract_data_time.RDS")
-
-
+# 8. save ----
+saveRDS(county_data_10_20, file = "data/county_data_time.RDS") 
+# county_data_time <- readRDS("data/county_data_time.RDS")

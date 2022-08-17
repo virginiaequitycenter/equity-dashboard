@@ -2,7 +2,8 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Acquire ACS data
-# Last updated: 03/12/2021
+# Last updated: 07/15/2022
+  # Updates include: pulling 2020 ACS data and adding a few more variables 
 # Metrics from ACS (in common with tract level): 
 # * Total population
 # * Poverty, child poverty 
@@ -18,7 +19,7 @@
 # Metrics specific to locality level (from Decennial or ACS):
 # * Median HH Income by Race/Ethnicity
 # 
-# Based on: ACS 2015-2019 
+# Based on: ACS 2016-2020 
 # Geography: Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene, Louisa, 
 #     Fluvanna, Nelson, Buckingham, Madison, Orange
@@ -44,9 +45,9 @@ library(tidycensus)
 # census_api_key("", install = TRUE, overwrite = TRUE) # add key
 
 # Variable view helper
-# acs_var <- load_variables(2018, "acs5", cache = TRUE)
-# acs_var <- load_variables(2018, "acs5/subject", cache = TRUE)
-# acs_var <- load_variables(2018, "acs5/profile", cache = TRUE)
+# acs_var <- load_variables(2020, "acs5", cache = TRUE)
+# acs_var <- load_variables(2020, "acs5/subject", cache = TRUE)
+# acs_var <- load_variables(2020, "acs5/profile", cache = TRUE)
 
 # Variable of interest -
 ##  - Total population -- B01003_001
@@ -80,6 +81,9 @@ library(tidycensus)
 ##  - Percent of cost-burdened renters -- B25070_007+B25070_008+B25070_009+B25070_010/B25070_001
 ##  - Home ownership rates -- B25003_002/B25003_002
 ##  - Housing vacant unitss -- B25002_003/B25002_001
+##  - Number of households who receive cash public assistance/SNAP benefits -- B19058_002
+##  - Number of foreign-born residents -- B05002_013
+##  - Number of residents who have a disability -- C18130_003 + C18130_010 + C18130_017
 
 
 # ....................................................
@@ -124,7 +128,9 @@ varlist_b = c("B01003_001", # totalpop
               "B25003_002",  # owner-occupied housing units
               "B25003_001",  # occupied housing units
               "B25002_003",  # vacant housing units
-              "B25002_001")  # housing units
+              "B25002_001",  # housing units
+              "B19058_002",  # SNAP
+              "B05002_013")  # Foreign-born
 
 
 # Pull variables
@@ -133,7 +139,7 @@ county_data_s <- get_acs(geography = "county",
                         state = "VA", 
                         county = region, 
                         survey = "acs5",
-                        year = 2019, 
+                        year = 2020, 
                         output = "wide")
 
 county_data_b <- get_acs(geography = "county",
@@ -141,7 +147,7 @@ county_data_b <- get_acs(geography = "county",
                         state = "VA", 
                         county = region, 
                         survey = "acs5",
-                        year = 2019, 
+                        year = 2020, 
                         output = "wide")
 
 # rename variables
@@ -168,7 +174,9 @@ names(county_data_b) = c("GEOID", "NAME",
                         "ownoccE", "ownoccM",
                         "occhseE", "occhseM",
                         "vachseE", "vachseM",
-                        "allhseE", "allhseM")
+                        "allhseE", "allhseM",
+                        "snapE", "snapM",
+                        "foreignbE", "foreignbM")
 
 # Derive some variables
 county_data_b <- county_data_b %>% 
@@ -186,6 +194,18 @@ county_data_b <- county_data_b %>%
          vacrateM = round(vacrateM*100, 1)) %>% 
   select(-c(rentersumE, rentersumM,rent30E:occhseM))
 
+# Derive snap variables
+county_data_b <- county_data_b %>% 
+  mutate(perc_snaphseE = round((snapE / allhseE)*100,1),
+         perc_snaphseM = round(moe_prop(snapE, allhseE, snapM, allhseM), 2),
+         .keep = "all")
+
+# Derive foreign born variables
+county_data_b <- county_data_b %>% 
+  mutate(perc_forbE = round((foreignbE / totalpopE)*100,1),
+         perc_forbM = round(moe_prop(foreignbE, totalpopE, foreignbM, totalpopM), 2),
+         .keep = "all")
+
 
 # Get Data
 # pull tables (easier to just pull tables separately)
@@ -194,21 +214,28 @@ county_race <- get_acs(geography = "county",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2019)
+          year = 2020)
 
 county_age <- get_acs(geography = "county", 
           table = "S0101", 
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2019)
+          year = 2020)
 
 county_enroll <- get_acs(geography = "county", 
           table = "S1401", 
           state = "VA", 
           county = region, 
           survey = "acs5", 
-          year = 2019)
+          year = 2020)
+
+county_disability <- get_acs(geography = "county", 
+                            table = "C18130", 
+                            state = "VA", 
+                            county = region, 
+                            survey = "acs5",
+                            year = 2020) 
 
 
 # ....................................................
@@ -224,7 +251,7 @@ county_hhinc_race <- get_acs(geography = "county",
                              state = "VA",
                              county = region,
                              survey = "acs5",
-                             year = 2019,
+                             year = 2020,
                              output = "wide")
 
 names(county_hhinc_race) = c("GEOID", "NAME",
@@ -332,6 +359,12 @@ county_schl <- county_schl_ratio %>%
             schlM = moe_prop(schl_num, schl_den, schl_numM, schl_denM),
             schlM = round(schlM*100,1))
 
+county_dis <- county_disability %>%
+  filter(variable == "C18130_003" | variable == "C18130_010" | variable == "C18130_017") %>%
+  group_by(GEOID, NAME) %>% 
+  summarize(disability_numE = sum(estimate), 
+            disability_numM = moe_sum(moe = moe, estimate = estimate))
+
 
 # Combine indicators
 # joining columns
@@ -349,11 +382,12 @@ county_data <- county_data_s %>%
   left_join(county_age24) %>% 
   left_join(county_age64) %>% 
   left_join(county_age65) %>% 
-  left_join(county_hhinc_race)
+  left_join(county_hhinc_race) %>%
+  left_join(county_dis)
 
 county_data <- county_data %>% 
   mutate(geoid = GEOID,
-         year = "2019") %>% 
+         year = "2020") %>% 
   separate(geoid, into = c("state", "locality"), 
            sep = c(2)) %>% 
   select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, indigE, indigM, othraceE, othraceM, multiE, multiM, ltnxE, ltnxM, everything())
