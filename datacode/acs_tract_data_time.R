@@ -2,7 +2,7 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Acquire ACS data
-# Last updated: 01/17/2020
+# Last updated: 11/11/2022
 # Metrics from ACS/Census: Over time: 
 # * Race/Ethnicity and Total population over time: Decennial 1990, 2000, 2010; ACS 2011-2017
 #
@@ -53,7 +53,7 @@ library(tidycensus)
 
 # ....................................................
 # 2. Define localities, variables, pull tables ----
-ccode <- read_csv("code/county_codes.csv")
+ccode <- read_csv("county_codes.csv")
 region <- ccode$code # list of desired counties
 
 

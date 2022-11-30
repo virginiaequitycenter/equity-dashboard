@@ -36,29 +36,31 @@ move_last <- function(DF, last_col) {
 # ....................................................
 # 2. Load data ----
 # block group data
-blkgrp_data <- readRDS("data/blkgrp_data.RDS")
+blkgrp_data <- readRDS("../data/blkgrp_data.RDS")
 
 # tract level ACS
-tract_data <- readRDS("data/tract_data.RDS")
-tract_data_time <- readRDS("data/tract_data_time.RDS")
-lifeexp_tract <- readRDS("data/tract_life_exp.RDS")
-seg_tract <- readRDS("data/seg_tract.RDS")
+tract_data <- readRDS("../data/tract_data.RDS")
+tract_data_time <- readRDS("../data/tract_data_time.RDS") # NOT UPDATED
+
+lifeexp_tract <- readRDS("../data/tract_life_exp.RDS") # NOT UPDATED
+
+seg_tract <- readRDS("../data/seg_tract.RDS")
 
 # county level ACS
-county_data <- readRDS("data/county_data.RDS")
-county_data_time <- readRDS("data/county_data_time.RDS")
-lifeexp_county <- readRDS("data/county_life_exp.RDS")
-seg_county <- readRDS("data/seg_county.RDS")
+county_data <- readRDS("../data/county_data.RDS")
+county_data_time <- readRDS("../data/county_data_time.RDS") # NOT UPDATED
+lifeexp_county <- readRDS("../data/county_life_exp.RDS") # NOT UPDATED
+seg_county <- readRDS("../data/seg_county.RDS")
 
 # points and polygons
-parks_sf <- st_read("data/parks_sf.geojson") 
-schools_sf <- st_read("data/schools_sf.geojson") # may want to segment by type (public, private)
-sabselem_sf <- st_read("data/sabselem_sf.geojson")
-sabshigh_sf <- st_read("data/sabshigh_sf.geojson")
-mcd_sf <- st_read("data/mcd_sf.geojson")
+parks_sf <- st_read("../data/parks_OSM_sf.geojson") 
+schools_sf <- st_read("../data/schools_sf.geojson") # may want to segment by type (public, private)
+sabselem_sf <- st_read("../data/sabselem_sf.geojson")
+sabshigh_sf <- st_read("../data/sabshigh_sf.geojson")
+mcd_sf <- st_read("../data/mcd_sf.geojson") # NOT UPDATED
 # other files as needed: polygons and points
 
-ccode <- read_csv("datacode/county_codes.csv")
+ccode <- read_csv("county_codes.csv")
 ccode <- ccode %>% mutate(
   code = as.character(code),
   code = str_pad(code, width = 3, side = "left", pad = "0")
@@ -220,7 +222,7 @@ blkgrp_data_geo <- merge(blkgrp_geo, blkgrp_data, by = "GEOID", duplicateGeoms =
 
 # ....................................................
 # 5. Metrics for snapshot valuebox ----
-county_dash <- county_data %>% filter(year == "2018") %>% 
+county_dash <- county_data %>% filter(year == "2020") %>% 
   select(GEOID, county.nice, totalpopE, hd_index, hhincE, cpovrateE, lifeexpE, renter30E)
 
 
@@ -232,14 +234,14 @@ mycolors <- colorRampPalette(brewer.pal(8, "YlGnBu"))(nb.cols)
 
 # ....................................................
 # 7. Save for app ----
-save.image(file = "data/combine_data.Rdata") # for updates
+save.image(file = "../data/combine_data_2022.Rdata") # for updates
 # load("data/combine_data.Rdata")
 
 rm(ccode, geo, blkgrp_geo, lifeexp_tract, lifeexp_county, seg_county, 
    county_data_time, tract_data_time, tab, tab2, tab3, region, move_last)
 
-save.image(file = "data/app_data_2021.Rdata") 
-save.image(file = "cville-region/www/app_data_2021.Rdata")
+save.image(file = "app_data_2022.Rdata") 
+save.image(file = "../cville-region/www/app_data_2022.Rdata")
 # load("data/app_data_2020.Rdata")
 
 
@@ -347,12 +349,12 @@ race_comp <- all_data %>%
 race_vars <- unique(race_comp$var)
 
 # get helpers
-source('datacode/helpers.R')
+source('../datacode/helpers.R')
 
 # create new app_data.Rdata file
 save(counties_geo, counties, all_data, mycolors, 
      parks_sf, schools_sf, sabselem_sf, mcd_sf, group_df,
      ind_choices_county, ind_choices_bg, ind_choices_ct,
      years, year_ind, helpers, race_comp, race_vars,
-     file = "cville-region/www/app_data_2021.Rdata")
+     file = "../cville-region/www/app_data_2022.Rdata")
 

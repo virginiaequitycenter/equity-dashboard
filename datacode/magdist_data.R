@@ -32,18 +32,23 @@ region <- ccode$code # list of desired counties
 # 2. Download data ----
 
 # pull county subdivisions and reduce to region
-mcd <- county_subdivisions(state = "VA", county = region, year = "2020")
+mcd <- county_subdivisions(state = "VA", county = "003", year = "2020")
+# will need to change back to county = region
 
-test <- voting_districts(state = "VA", county = "003", year = "2020")
+# test <- voting_districts(state = "VA", county = "003", year = "2020")
 
-# LL 10/08 note: As of today, it doesn't appear that the magisterial districts 
+mcd_df <- fortify(mcd)
+
+p <- ggplot() + 
+  geom_sf(data=mcd_df,
+          color="black", fill="white", size=0.25)
+p
+
+# LL 11/3 note: As of today, it doesn't appear that the magisterial districts 
 # for Albemarle county have changes to redistricting option 2 that was selected
 # by the county. However, the documentation from tigris seems to suggest that it 
 # should be for the year 2020.... I tried downloading voting districts as well, 
 # and those also claim to be 2020. 
-# The magisterial districts do look different in the surrounding communitites? 
-# But just the exterior borders which seems wrong. 
-
 
 # ....................................................
 # 3. Check and transform ----

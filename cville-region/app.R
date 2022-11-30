@@ -19,7 +19,7 @@ library(RColorBrewer)
 
 # Load Data ---------------------------------------------------------------
 
-load("www/app_data_2021.Rdata")
+load("www/app_data_2022.Rdata")
 
 # was not deploying on shinyapps:
 # https://stackoverflow.com/questions/61286108/error-in-cpl-transformx-crs-aoi-pipeline-reverse-ogrcreatecoordinatetrans
@@ -269,7 +269,7 @@ server <- function(input, output, session) {
   md <- reactive({
     all_data %>% filter(county.nice %in% input$geo &
                           GEO_LEVEL == input$geo_df &
-                          year == 2019) 
+                          year == 2020) 
   })
   
   
