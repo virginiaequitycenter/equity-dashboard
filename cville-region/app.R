@@ -269,7 +269,7 @@ server <- function(input, output, session) {
   md <- reactive({
     all_data %>% filter(county.nice %in% input$geo &
                           GEO_LEVEL == input$geo_df &
-                          year == 2020) 
+                          year == "2020") 
   })
   
   
@@ -289,19 +289,19 @@ server <- function(input, output, session) {
       addPolygons(color = "grey",
                   fill = FALSE,
                   weight = 3) %>% 
-      addPolygons(data =  filter(parks_sf, FIPS %in% f), 
-                  group="Parks", 
-                  popup = ~NAME) %>% 
-      addCircles(data =  filter(schools_sf, county %in% f), 
-                 group="Schools", 
-                 popup = ~NAME) %>% 
-      addPolygons(data = filter(sabselem_sf, county %in% f), 
+      # addPolygons(data =  filter(parks_sf, COUNTYFP %in% f), # changed FIPS to COUNTYFP
+      #             group="Parks", 
+      #             popup = ~NAME) %>% 
+      addCircles(data =  filter(schools_sf, county %in% f),
+                 group="Schools",
+                 popup = ~NAME) %>%
+      addPolygons(data = filter(sabselem_sf, county.x %in% f), # changed county to county.x (fix in data_combine)
                   group="Elem School Zone",
                   color = "blue", fill = FALSE, weight = 2,
                   popup = ~schnam,
                   highlight = highlightOptions(weight = 3,
                                                color = "blue",
-                                               bringToFront = TRUE)) %>% 
+                                               bringToFront = TRUE)) %>%
       addPolygons(data = filter(mcd_sf, COUNTYFP %in% f), 
                   group="Magisterial Districts",
                   color = "purple", fill = FALSE, weight = 2,
