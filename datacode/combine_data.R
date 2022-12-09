@@ -179,7 +179,7 @@ blkgrp_data <- left_join(blkgrp_data, tab3, by=c("locality"))
 geo <- tracts(state = 'VA', county = region) # from tigris
 
 # join coordinates to data
-tract_data_geo <- merge(geo, tract_data, by = "GEOID", duplicateGeoms = TRUE) # from sp -- keep all obs (full_join)
+tract_data_geo <- merge(geo, tract_data, by = c("GEOID"), duplicateGeoms = TRUE) # from sp -- keep all obs (full_join)
 # tract_data_geo2 <- geo_join(geo, tract_data, by = "GEOID") # from sf -- keep only 2018 obs (left_join)
 names(tract_data_geo)[names(tract_data_geo)=="NAME.y"] <- "NAME"
 

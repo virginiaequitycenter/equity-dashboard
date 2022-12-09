@@ -52,9 +52,9 @@ parks3_bounds <- st_intersection(st_make_valid(parks3), cville_bounds)
 # fewest columns 
 names <- colnames(parks3_bounds)
 
-parks1_bounds <- parks1_bounds[,colnames(parks1_bounds) %in% names == T]
-
 parks2_bounds <- parks2_bounds[,colnames(parks2_bounds) %in% names == T]
+
+parks1_bounds <- parks1_bounds[,colnames(parks1_bounds) %in% names == T]
 
 parks <- rbind(parks1_bounds, parks2_bounds, parks3_bounds)
 
@@ -103,10 +103,17 @@ leaflet(cville_bounds) %>%
 # outside the UVA community access the lawn, but those often seem to be tourists. 
 # but for now, I'm excluding it along with the other historic districts. 
 
-parks <- parks %>%
-  filter(parks$name %in% historic$name == F)
+parks <- parks[parks$name %in% historic$name == F,]
 
 ## Spot checking for redundancies and point/polygon inconsistencies:
+### As of 12/09/2022
+# there are a lot of parks with repeated names, but R doesn't recognize them as duplicated rows because the 
+# geometries are ever-so-slightly different. 
+# Getting rid of repeated names 
+parks <- parks[order(parks$name),]
+parks <- parks[!duplicated(parks$name),]
+
+### From previous run ###########################################################################
 # Polygon for Fry Spring's Park and point for Fry's Spring Beach Club (only keeping polygon)
 # Polygon for Northeast Park and a point for "Northeast Park Southbound" (only keeping polygon)
 # 
@@ -117,17 +124,26 @@ parks <- parks %>%
 
 # Filtering out the redundant points mentioned above and 
 # getting rid of the osm id column because it's unnecessary
-parks <- parks %>%
-  filter(parks$name != "Fry's Spring Beach Club" & parks$name != "Northeast Park Southbound") %>%
+# parks <- parks %>%
+#   filter(parks$name != "Fry's Spring Beach Club" & parks$name != "Northeast Park Southbound") %>%
+#   select(-osm_id)
+#################################################################################################
+
+# Need to perserve the column with park names--it keeps getting chopped after using the st_write function 
+# And getting rid of osm_id column 
+parks <- parks %>% 
+  rename(ParkName = name) %>%
   select(-osm_id)
+
+# Getting rid of row names 
+rownames(parks) <- NULL
 
 # ....................................................
 # 4. Save date as geojson  
 # Save as geojson
-st_write(parks, "../data/parks_OSM_sf.geojson", driver = "GeoJSON", delete_dsn = TRUE) 
+st_write(parks, "../data/parks_OSM_sf.geojson", driver = "GeoJSON", delete_dsn = TRUE, factorsAsCharacter = TRUE) 
 
 st_crs(parks)
-
 
 
 
