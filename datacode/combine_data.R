@@ -60,7 +60,7 @@ sabshigh_sf <- st_read("../data/sabshigh_sf.geojson")
 mcd_sf <- st_read("../data/mcd_sf.geojson") # NOT UPDATED
 # other files as needed: polygons and points
 
-ccode <- read_csv("county_codes.csv")
+ccode <- read_csv("../datacode/county_codes.csv")
 ccode <- ccode %>% mutate(
   code = as.character(code),
   code = str_pad(code, width = 3, side = "left", pad = "0")
@@ -176,12 +176,13 @@ blkgrp_data <- left_join(blkgrp_data, tab3, by=c("locality"))
 # ....................................................
 # 4. Add geography  ----
 # get tract polygons
-geo <- tracts(state = 'VA', county = region) # from tigris
+geo <- tracts(state = 'VA', county = region, year = 2020) %>% # from tigris
+  rename(tr = NAME)
 
 # join coordinates to data
 tract_data_geo <- merge(geo, tract_data, by = c("GEOID"), duplicateGeoms = TRUE) # from sp -- keep all obs (full_join)
 # tract_data_geo2 <- geo_join(geo, tract_data, by = "GEOID") # from sf -- keep only 2018 obs (left_join)
-names(tract_data_geo)[names(tract_data_geo)=="NAME.y"] <- "NAME"
+# names(tract_data_geo)[names(tract_data_geo)=="NAME.x"] <- "NAME"
 
 # # add centroid coordinates for tract polygons: from geosphere
 # # as possible way of visualizing/layering a second attribute
@@ -191,7 +192,7 @@ names(tract_data_geo)[names(tract_data_geo)=="NAME.y"] <- "NAME"
 
 
 # get locality polygons
-counties_geo <- counties(state = 'VA') # from tigris
+counties_geo <- counties(state = 'VA', year = 2020) # from tigris
 counties_geo <- counties_geo %>% subset(COUNTYFP %in% region)
 
 # join coordinates to data
@@ -208,7 +209,7 @@ names(county_data_geo)[names(county_data_geo)=="NAME.y"] <- "NAME"
 
 
 # get block group polygons
-blkgrp_geo <- block_groups(state = 'VA', county = region) # from tigris
+blkgrp_geo <- block_groups(state = 'VA', county = region, year = 2020) # from tigris
 
 # join coordinates to data
 blkgrp_data_geo <- merge(blkgrp_geo, blkgrp_data, by = "GEOID", duplicateGeoms = TRUE) # from sp -- keep all obs (full_join)
