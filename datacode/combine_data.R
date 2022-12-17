@@ -46,6 +46,8 @@ lifeexp_tract <- readRDS("../data/tract_life_exp.RDS") # NOT UPDATED
 
 seg_tract <- readRDS("../data/seg_tract.RDS")
 
+hmda_tract <- read.csv("../data/hmda_cville_tract_avg2016-2021.csv")
+
 # county level ACS
 county_data <- readRDS("../data/county_data.RDS")
 county_data_time <- readRDS("../data/county_data_time.RDS") # NOT UPDATED
@@ -85,6 +87,12 @@ tract_data <- tract_data %>%
 # add segregation measures by county
 tract_data <- tract_data %>% 
   left_join(seg_tract, by = c("locality" = "county", "tract" = "tract", "year" = "year")) %>% 
+  select(move_last(., c("state", "locality", "tract")))
+
+# add hmda data 
+hmda_tract$census_tract <- as.character(hmda_tract$census_tract)
+tract_data <- tract_data %>% 
+  left_join(hmda_tract, by = c("GEOID" = "census_tract")) %>% 
   select(move_last(., c("state", "locality", "tract")))
 
 # b. Merge county data ----
