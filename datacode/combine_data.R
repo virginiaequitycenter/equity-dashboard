@@ -69,6 +69,13 @@ ccode <- ccode %>% mutate(
   )
 region <- ccode$code # list of desired counties
 
+# Tract names 
+googlesheets4::gs4_deauth()
+tractname_sheet <- "https://docs.google.com/spreadsheets/d/19wl75rrOBjEqiQKMB38RSz3G9bGHxXbNUUK3x1iWfKk/edit#gid=0"
+tractnames <- googlesheets4::read_sheet(tractname_sheet, sheet = "Sheet1") 
+tractnames <- tractnames %>%
+  rename(count = locality)
+tractnames$GEOID <- as.character(tractnames$GEOID)
 
 # ....................................................
 # 2. Merge tract, county attributes, derive HDI ----
@@ -93,7 +100,11 @@ tract_data <- tract_data %>%
 hmda_tract$census_tract <- as.character(hmda_tract$census_tract)
 tract_data <- tract_data %>% 
   left_join(hmda_tract, by = c("GEOID" = "census_tract")) %>% 
-  select(move_last(., c("state", "locality", "tract")))
+  select(move_last(., c("state", "locality", "tract"))) 
+
+tract_data <- tract_data %>% 
+left_join(tractnames, by = "GEOID") %>% 
+  select(move_last(., c("state", "locality", "tract"))) 
 
 # b. Merge county data ----
 # Join county, county/time

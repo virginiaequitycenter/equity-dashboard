@@ -354,7 +354,8 @@ server <- function(input, output, session) {
                       smoothFactor = 0.2,
                       popup = paste0(attr(ind1, "goodname"), ": ",
                                      ind1, "<br>",
-                                     md()[["NAME"]], "<br>")) %>%
+                                     md()[["NAME"]], "<br>",
+                                     md()[["tractnames"]])) %>%
           addLegend(pal = colorNumeric(mycolors, domain = ind1),
                     values = ind1,
                     position = "topright",
@@ -412,7 +413,8 @@ server <- function(input, output, session) {
                         smoothFactor = 0.2,
                         popup = paste0(attr(ind2, "goodname"), ": ",
                                        ind2, "<br>",
-                                       md()[["NAME"]], "<br>")) %>%
+                                       md()[["NAME"]], "<br>",
+                                       md()[["tractnames"]])) %>%
             addLegend(pal = colorNumeric(mycolors, domain = ind2),
                       values = ind2,
                       position = "topright",
