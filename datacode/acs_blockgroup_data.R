@@ -2,8 +2,8 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Acquire ACS data
-# Last updated: 07/15/2022
-  # Updates include: pulling 2020 ACS data and adding a few more variables 
+# Last updated: 01/10/2023
+  # Updates include: pulling 2021 ACS data and adding a few more variables 
 # Metrics from ACS (in common with locality level): 
 # * Total population
 # * Poverty, child poverty 
@@ -16,7 +16,7 @@
 # * Median personal earnings
 # * Net school enrollment
 #
-# Based on: ACS 2016-2020 
+# Based on: ACS 2017-2021 
 # Geography: Block groups in Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene, Louisa, 
 #     Fluvanna, Nelson, Buckingham, Madison, Orange
@@ -43,10 +43,10 @@ library(tidycensus)
 # census_api_key("", install = TRUE, overwrite = TRUE) # add key
 
 # Variable view helper
-# acs_var <- load_variables(2020, "acs5", cache = TRUE)
-# acs_var <- load_variables(2020, "acs5/subject", cache = TRUE)
-# acs_var <- load_variables(2020, "acs5/profile", cache = TRUE)
-# dec_var <- load_variables(2020, "sf1", cache = TRUE)
+# acs_var <- load_variables(2021, "acs5", cache = TRUE)
+# acs_var <- load_variables(2021, "acs5/subject", cache = TRUE)
+# acs_var <- load_variables(2021, "acs5/profile", cache = TRUE)
+# dec_var <- load_variables(2021, "sf1", cache = TRUE)
 
 # Variable of interest -
 ##  - Total population -- B01003_001
@@ -123,7 +123,7 @@ blkgrp_data_b <- get_acs(geography = "block group",
                          state = "VA", 
                          county = region, 
                          survey = "acs5",
-                         year = 2020, 
+                         year = 2021, 
                          output = "wide")
 
 # rename variables
@@ -174,7 +174,7 @@ blkgrp_educ <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2020)
+          year = 2021)
 
 # for race
 blkgrp_race <- get_acs(geography = "block group", 
@@ -182,7 +182,7 @@ blkgrp_race <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2020)
+          year = 2021)
 
 # for blkgrp_unemp
 blkgrp_emp <- get_acs(geography = "block group", 
@@ -190,7 +190,7 @@ blkgrp_emp <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2020)
+          year = 2021)
 
 # for blkgrp_hlthins, blkgrp_pubins
 blkgrp_insur <- get_acs(geography = "block group", 
@@ -198,7 +198,7 @@ blkgrp_insur <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2020)
+          year = 2021)
 
 # for age
 blkgrp_age <- get_acs(geography = "block group", 
@@ -206,7 +206,7 @@ blkgrp_age <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2020)
+          year = 2021)
 
 # ....................................................
 # 3. Reduce and Combine data ----
@@ -433,7 +433,7 @@ blkgrp_data <- blkgrp_data_b %>%
   left_join(blkgrp_age65) 
 
 blkgrp_data <- blkgrp_data %>% 
-  mutate(year = "2020") %>% 
+  mutate(year = "2021") %>% 
   select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, 
          indigE, indigM, othraceE, othraceM, multiE, multiM, ltnxE, ltnxM, snapE, snapM, everything())
 

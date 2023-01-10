@@ -2,8 +2,8 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Acquire ACS data
-# Last updated: 07/15/2022
-  # Updates include: pulling 2020 ACS data and adding a few more variables 
+# Last updated: 1/10/2023
+  # Updates include: pulling 2021 ACS data and adding a few more variables 
 # Metrics from ACS (in common with tract level): 
 # * Total population
 # * Poverty, child poverty 
@@ -19,7 +19,7 @@
 # Metrics specific to locality level (from Decennial or ACS):
 # * Median HH Income by Race/Ethnicity
 # 
-# Based on: ACS 2016-2020 
+# Based on: ACS 2017-2021 
 # Geography: Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene, Louisa, 
 #     Fluvanna, Nelson, Buckingham, Madison, Orange
@@ -45,9 +45,9 @@ library(tidycensus)
 # census_api_key("", install = TRUE, overwrite = TRUE) # add key
 
 # Variable view helper
-# acs_var <- load_variables(2020, "acs5", cache = TRUE)
-# acs_var <- load_variables(2020, "acs5/subject", cache = TRUE)
-# acs_var <- load_variables(2020, "acs5/profile", cache = TRUE)
+# acs_var <- load_variables(2021, "acs5", cache = TRUE)
+# acs_var <- load_variables(2021, "acs5/subject", cache = TRUE)
+# acs_var <- load_variables(2021, "acs5/profile", cache = TRUE)
 
 # Variable of interest -
 ##  - Total population -- B01003_001
@@ -139,7 +139,7 @@ county_data_s <- get_acs(geography = "county",
                         state = "VA", 
                         county = region, 
                         survey = "acs5",
-                        year = 2020, 
+                        year = 2021, 
                         output = "wide")
 
 county_data_b <- get_acs(geography = "county",
@@ -147,7 +147,7 @@ county_data_b <- get_acs(geography = "county",
                         state = "VA", 
                         county = region, 
                         survey = "acs5",
-                        year = 2020, 
+                        year = 2021, 
                         output = "wide")
 
 # rename variables
@@ -214,28 +214,28 @@ county_race <- get_acs(geography = "county",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2020)
+          year = 2021)
 
 county_age <- get_acs(geography = "county", 
           table = "S0101", 
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2020)
+          year = 2021)
 
 county_enroll <- get_acs(geography = "county", 
           table = "S1401", 
           state = "VA", 
           county = region, 
           survey = "acs5", 
-          year = 2020)
+          year = 2021)
 
 county_disability <- get_acs(geography = "county", 
                             table = "C18130", 
                             state = "VA", 
                             county = region, 
                             survey = "acs5",
-                            year = 2020) 
+                            year = 2021) 
 
 
 # ....................................................
@@ -251,7 +251,7 @@ county_hhinc_race <- get_acs(geography = "county",
                              state = "VA",
                              county = region,
                              survey = "acs5",
-                             year = 2020,
+                             year = 2021,
                              output = "wide")
 
 names(county_hhinc_race) = c("GEOID", "NAME",
@@ -387,7 +387,7 @@ county_data <- county_data_s %>%
 
 county_data <- county_data %>% 
   mutate(geoid = GEOID,
-         year = "2020") %>% 
+         year = "2021") %>% 
   separate(geoid, into = c("state", "locality"), 
            sep = c(2)) %>% 
   select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, indigE, indigM, othraceE, othraceM, multiE, multiM, ltnxE, ltnxM, everything())

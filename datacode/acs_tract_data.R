@@ -2,8 +2,8 @@
 # Greater Charlottesville Region Equity Profile
 ####################################################
 # Acquire ACS data
-# Last updated: 07/15/2022
-  # Updates include: pulling 2020 ACS data and adding a few more variables 
+# Last updated: 1/10/2023
+  # Updates include: pulling 2021 ACS data and adding a few more variables 
 # Metrics from ACS (in common with locality level): 
 # * Total population
 # * Poverty, child poverty 
@@ -16,7 +16,7 @@
 # * Median personal earnings
 # * Net school enrollment
 
-# Based on: ACS 2016-2020 
+# Based on: ACS 2016-2021 
 # Geography: Tracts in Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene, Louisa, 
 #     Fluvanna, Nelson, Buckingham, Madison, Orange
@@ -42,10 +42,10 @@ library(tidycensus)
 # census_api_key("", install = TRUE, overwrite = TRUE) # add key
 
 # Variable view helper
-# acs_var <- load_variables(2020, "acs5", cache = TRUE)
-# acs_var <- load_variables(2020, "acs5/subject", cache = TRUE)
-# acs_var <- load_variables(2020, "acs5/profile", cache = TRUE)
-# dec_var <- load_variables(2020, "sf1", cache = TRUE)
+# acs_var <- load_variables(2021, "acs5", cache = TRUE)
+# acs_var <- load_variables(2021, "acs5/subject", cache = TRUE)
+# acs_var <- load_variables(2021, "acs5/profile", cache = TRUE)
+# dec_var <- load_variables(2021, "sf1", cache = TRUE)
 
 # Variable of interest -
 ##  - Total population -- B01003_001
@@ -135,7 +135,7 @@ tract_data_s <- get_acs(geography = "tract",
                       state = "VA", 
                       county = region, 
                       survey = "acs5",
-                      year = 2020, 
+                      year = 2021, 
                       output = "wide")
 
 tract_data_b <- get_acs(geography = "tract",
@@ -143,7 +143,7 @@ tract_data_b <- get_acs(geography = "tract",
                        state = "VA", 
                        county = region, 
                        survey = "acs5",
-                       year = 2020, 
+                       year = 2021, 
                        output = "wide")
 
 # rename variables
@@ -210,28 +210,28 @@ tract_race <- get_acs(geography = "tract",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2020)
+          year = 2021)
 
 tract_age <- get_acs(geography = "tract", 
           table = "S0101", 
           state = "VA", 
           county = region, 
           survey = "acs5", 
-          year = 2020)
+          year = 2021)
 
 tract_enroll <- get_acs(geography = "tract", 
           table = "S1401", 
           state = "VA", 
           county = region, 
           survey = "acs5", 
-          year = 2020)
+          year = 2021)
 
 tract_disability <- get_acs(geography = "tract", 
                              table = "C18130", 
                              state = "VA", 
                              county = region, 
                              survey = "acs5",
-                             year = 2020) 
+                             year = 2021) 
 
 
 # ....................................................
@@ -358,7 +358,7 @@ tract_data <- tract_data_s %>%
   left_join(tract_dis)
 
 tract_data <- tract_data %>% 
-  mutate(year = "2020") %>% 
+  mutate(year = "2021") %>% 
   select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, indigE, indigM, othraceE, othraceM, multiE, multiM, ltnxE, ltnxM, everything())
 
 tract_data <- tract_data %>% 
