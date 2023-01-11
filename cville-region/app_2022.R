@@ -269,7 +269,7 @@ server <- function(input, output, session) {
   md <- reactive({
     all_data %>% filter(county.nice %in% input$geo &
                           GEO_LEVEL == input$geo_df &
-                          year == "2020") 
+                          year == "2021") 
   })
   
   
