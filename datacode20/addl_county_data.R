@@ -1,5 +1,5 @@
 ####################################################
-# Greater Charlottesville Regional Equity Atlas
+# Greater Charlottesville Regional Equity Atlas (2020)
 ####################################################
 # Acquire Additional County-Level data
 # Last updated: 01/10/2023
@@ -8,12 +8,13 @@
 # * Segregation measures (from ACS data, but with more derivation)
 #
 # Geography: Localities in Charlottesville region
-#     Charlottesville, Albemarle, Greene 
-#     Louisa, Fluvanna, Nelson,
+#     Charlottesville, Albemarle, Greene, Louisa, 
+#     Fluvanna, Nelson, Buckingham, Madison, Orange
+#     (include Augusta, Waynesboro, Staunton?)
 ####################################################
 # 1. Load libraries
-# 3. Segregation measures
 # 2. Life expectancy estimates
+# 3. Segregation measures
 ####################################################
 
 # ....................................................
@@ -25,32 +26,29 @@ library(tidycensus)
 library(sf)
 library(readxl)
 
-ccode <- read_csv("data/county_codes.csv")
-ccode <- ccode[1:6,]
+ccode <- read_csv("data20/county_codes.csv")
 region <- ccode$code # list of desired counties
 
 
 # ....................................................
 # 2. Small-area life expectancy estimates ----
 # a. acquire ----
-if (!dir.exists("data/tempdata")){
-  dir.create("data/tempdata")}
+if (!dir.exists("data20/tempdata")){
+  dir.create("data20/tempdata")}
 
 # https://www.countyhealthrankings.org/app/virginia/2022/downloads
 # url <- "https://www.countyhealthrankings.org/sites/default/files/media/document/state/downloads/2019%20County%20Health%20Rankings%20Virginia%20Data%20-%20v1_0.xls" # 2019
-# url <- "https://www.countyhealthrankings.org/sites/default/files/media/document/2020%20County%20Health%20Rankings%20Virginia%20Data%20-%20v1_0.xlsx" # 2020
-# url <- "https://www.countyhealthrankings.org/sites/default/files/media/document/2021%20County%20Health%20Rankings%20Virginia%20Data%20-%20v1_0.xlsx" # 2021
-url <- "https://www.countyhealthrankings.org/sites/default/files/media/document/2022%20County%20Health%20Rankings%20Virginia%20Data%20-%20v1.xlsx" # 2022
-download.file(url, destfile="data/tempdata/countyhealthrankings2022.xlsx", method="libcurl")
+url <- "https://www.countyhealthrankings.org/sites/default/files/media/document/2020%20County%20Health%20Rankings%20Virginia%20Data%20-%20v1_0.xlsx" # 2020
+download.file(url, destfile="data20/tempdata/countyhealthrankings2020.xlsx", method="libcurl")
 
 # read data
-life_exp <- read_excel("data/tempdata/countyhealthrankings2022.xlsx", sheet = "Additional Measure Data", skip = 1)
+life_exp <- read_excel("data20/tempdata/countyhealthrankings2020.xlsx", sheet = "Additional Measure Data", skip = 1)
 
 # b. reduce (consider using more from this source), rename, derive
 life_exp <- life_exp %>% 
   select(FIPS, locality = County, 
-         lifeexpE = `Life Expectancy`, lifeexp_lb = `95% CI - Low...7`, lifeexp_ub = `95% CI - High...8`,
-         lifeexp_whiteE = `Life Expectancy (white)`, lifeexp_white_lb = `Life Expectancy (white) 95% CI - Low`, lifeexp_white_ub = `Life Expectancy (white) 95% CI - High`,
+         lifeexpE = `Life Expectancy`, lifeexp_lb = `95% CI - Low...5`, lifeexp_ub = `95% CI - High...6`,
+         lifeexp_whiteE = `Life Expectancy (White)`, lifeexp_white_lb = `Life Expectancy (White) 95% CI - Low`, lifeexp_white_ub = `Life Expectancy (White) 95% CI - High`,
          lifeexp_blackE = `Life Expectancy (Black)`, lifeexp_black_lb = `Life Expectancy (Black) 95% CI - Low`, lifeexp_black_ub = `Life Expectancy (Black) 95% CI - High`,
          lifeexp_ltnxE = `Life Expectancy (Hispanic)`, lifeexp_ltnx_lb = `Life Expectancy (Hispanic) 95% CI - Low`, lifeexp_ltnx_ub = `Life Expectancy (Hispanic) 95% CI - High`,
          lifeexp_asianE = `Life Expectancy (Asian)`, lifeexp_asian_lb = `Life Expectancy (Asian) 95% CI - Low`, lifeexp_asian_ub = `Life Expectancy (Asian) 95% CI - High`) %>% 
@@ -60,7 +58,7 @@ life_exp <- life_exp %>%
          lifeexp_ltnxM = (lifeexp_ltnx_ub-lifeexp_ltnx_lb)/2,
          lifeexp_asianM = (lifeexp_asian_ub-lifeexp_asian_lb)/2,
          fips = str_remove(FIPS, "51"),
-         year = "2022") %>% 
+         year = "2020") %>% 
   mutate_if(is.numeric, round, 1) %>% 
   select(FIPS, fips, locality, year, lifeexpE, lifeexpM, lifeexp_blackE, lifeexp_blackM, lifeexp_ltnxE, lifeexp_ltnxM, lifeexp_whiteE, lifeexp_whiteM, lifeexp_asianE, lifeexp_asianM)
 
@@ -72,14 +70,14 @@ life_exp <- life_exp %>%
 summary(life_exp)
 
 # d. save ----
-saveRDS(life_exp, file = "data/county_life_exp.RDS") 
+saveRDS(life_exp, file = "data20/county_life_exp.RDS") 
 
 
 # ....................................................
 # 3. Segregation measures ----
 # a. acquire tract data ----
-race_table<-get_acs(geography = "tract", 
-                        year=2021, 
+race_table <-get_acs(geography = "tract", 
+                        year=2020, 
                         state = "VA",
                         table = "B03002", 
                         survey = "acs5",
@@ -97,7 +95,7 @@ seg_tract <- race_table %>%
          multi = B03002_009E,
          hisp = B03002_012E, 
          total = B03002_001E,
-         year = 2021,
+         year = 2020,
          state = substr(GEOID, 1,2),
          county = substr(GEOID, 3,5),
          tract = substr(GEOID, 6,9)) %>% 
@@ -105,7 +103,7 @@ seg_tract <- race_table %>%
 
 # b. acquire county data ----
 race_table <- get_acs(geography = "county", 
-                        year=2021, 
+                        year=2020, 
                         state = "VA",
                         table = "B03002", 
                         survey = "acs5",
@@ -123,7 +121,7 @@ seg_county <- race_table %>%
          comulti = B03002_009E,
          cohisp = B03002_012E, 
          cototal = B03002_001E,
-         year = "2021",
+         year = "2020",
          state = substr(GEOID, 1,2),
          county = substr(GEOID, 3,5)) %>% 
   select(GEOID, cowhite, coblack, coindig, coasian, coother, comulti, cohisp, cototal, year, state, county) 
@@ -184,11 +182,11 @@ seg_county <- dissim_wb %>%
 # round
 seg_county <- seg_county %>% 
   mutate_if(is.numeric, round, 3) %>% 
-  mutate(year = "2021")
+  mutate(year = "2020")
 
 # check
 summary(seg_county)
 pairs(seg_county[2:7])
 
 # d. save ----
-saveRDS(seg_county, file = "data/seg_county.RDS")
+saveRDS(seg_county, file = "data20/seg_county.RDS")

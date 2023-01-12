@@ -107,17 +107,6 @@ ui <- dashboardPage(
                              content = helpers$indicator2,
                              size = "m"),
                     
-                    # # pick year (only available for vars in year_ind)
-                    # sliderTextInput("time",
-                    #                 "Select a Year:",
-                    #                 choices = years,
-                    #                 selected = max(years),
-                    #                 grid = TRUE) %>% 
-                    #   helper(type = "inline",
-                    #          icon = "info-circle",
-                    #          content = helpers$time,
-                    #          size = "m"),
-                    
                     # Select a base map
                     radioButtons(inputId = "map_geo",
                                  label = "Select a Base Map:",
@@ -185,16 +174,10 @@ ui <- dashboardPage(
                                          size = "m"),
                                 plotlyOutput("compare"),
                                 textOutput("source_c")), 
-                       # tabPanel("By Race", 
-                       #          textOutput("racetitle") %>% 
-                       #            helper(type = "inline",
-                       #                   title = "By Race",
-                       #                   icon = "question-circle",
-                       #                   content = helpers$race,
-                       #                   size = "m"),
-                       #          plotlyOutput("byrace")),
+
                        width=8)
               ),    # end row 2 panels
+
               # Row 3 panels ----
               fluidRow(
                 # https://stackoverflow.com/questions/30534674/displaying-true-when-shiny-files-are-split-into-different-folders/30538596#30538596
@@ -268,8 +251,7 @@ server <- function(input, output, session) {
   # get map data
   md <- reactive({
     all_data %>% filter(county.nice %in% input$geo &
-                          GEO_LEVEL == input$geo_df &
-                          year == "2020") 
+                          GEO_LEVEL == input$geo_df) 
   })
   
   
@@ -586,39 +568,7 @@ server <- function(input, output, session) {
   })
   
   
-  ###############################
-  # BEGIN By Race plot
-  ###############################  
-  
-  # # by race title, if present
-  # output$racetitle <- renderText({
-  #   if (!input$indicator1 %in% race_vars) {
-  #     paste("Breakouts by race are not yet available for the primary indicator you selected.")
-  #   } else {
-  #     paste(attr(md()[[input$indicator1]], "goodname"), "by Race by Locality")}
-  # })
-  
-  # # output by race visual ----
-  # # part of the patched together aggregation by race
-  # output$byrace <- renderPlotly({
-  #   if (input$indicator1 %in% race_vars) {
-  #     ggplotly(
-  #       ggplot(subset(race_comp, NAME %in% input$geo & var == input$indicator1),
-  #              aes(x=race, y=value, fill=race)) + 
-  #         stat_summary(fun="sum", geom="bar", 
-  #                      aes(text = paste(NAME,"<br>", race, 
-  #                                       input$indicator,
-  #                                       prettyNum(value, big.mark=",",scientific=F)))) + 
-  #         scale_fill_manual(values=brewer.pal(6, "YlGnBu")[2:6]) +
-  #         facet_wrap(~NAME, scales="free_y") +
-  #         labs(x="", y="") +
-  #         theme(axis.text.x = element_text(angle=45, hjust=1, vjust=0)),
-  #       tooltip="text") %>%
-  #       layout(showlegend = FALSE)
-  #   }
-  # })
-  
-  
+
   ###############################
   # BEGIN sidebar stories
   ###############################  

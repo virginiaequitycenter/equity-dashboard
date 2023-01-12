@@ -1,5 +1,5 @@
 ####################################################
-# Greater Charlottesville Regional Equity Atlas
+# Greater Charlottesville Regional Equity Atlas (2020)
 ####################################################
 # Acquire School geometry data
 # Last updated: 01/10/23 
@@ -7,8 +7,9 @@
 # * https://nces.ed.gov/programs/edge/Geographic/SchoolLocations
 #
 # Geography: Schools in Charlottesville region
-#     Charlottesville, Albemarle, Greene 
-#     Louisa, Fluvanna, Nelson,
+#     Charlottesville, Albemarle, Greene, Louisa, 
+#     Fluvanna, Nelson, Buckingham, Madison, Orange
+#     (include Augusta, Waynesboro, Staunton?)
 ####################################################
 # 1. Load libraries
 # 2. Download data
@@ -25,24 +26,24 @@
 library(tidyverse)
 library(sf)
 library(tigris)
+options(tigris_use_cache = TRUE)
 
-ccode <- read_csv("data/county_codes.csv")
-ccode <- ccode[1:6,]
+ccode <- read_csv("data20/county_codes.csv")
 region <- ccode$code # list of desired counties
 
 options(timeout = max(1080, getOption("timeout")))
 
 # ....................................................
 # 2. Download data ----
-if (!dir.exists("data/tempdata")){
-  dir.create("data/tempdata")}
+if (!dir.exists("data20/tempdata")){
+  dir.create("data20/tempdata")}
 
-# public schools -- updated public schools as of 01/23 are from 2021-2022 school year
-download.file(url = "https://nces.ed.gov/programs/edge/data/EDGE_GEOCODE_PUBLICSCH_2122.zip", 
-              destfile = "data/tempdata/public_schools.zip") # public school data file 
-unzip(zipfile = "data/tempdata/public_schools.zip", exdir = "data/tempdata/public_schools")
+# public schools -- public schools from 2019-2020 school year
+download.file(url = "https://nces.ed.gov/programs/edge/data/EDGE_GEOCODE_PUBLICSCH_1920.zip", 
+              destfile = "data20/tempdata/public_schools.zip") # public school data file 
+unzip(zipfile = "data20/tempdata/public_schools.zip", exdir = "data20/tempdata/public_schools")
 
-pubschools_sf = st_read(dsn = "data/tempdata/public_schools/EDGE_GEOCODE_PUBLICSCH_2122/Shapefiles_SCH/EDGE_GEOCODE_PUBLICSCH_2122.shp")
+pubschools_sf = st_read(dsn = "data20/tempdata/public_schools/EDGE_GEOCODE_PUBLICSCH_1920/Shapefiles_SCH/EDGE_GEOCODE_PUBLICSCH_1920.shp")
 # geometry type:  POINT
 # dimension:      XY
 # epsg (SRID):    4269
@@ -50,10 +51,9 @@ pubschools_sf = st_read(dsn = "data/tempdata/public_schools/EDGE_GEOCODE_PUBLICS
 
 # private schools -- updated private schools as of 07/20 are from 2019-2020 school year (no 2021/22 data available)
 download.file(url = "https://nces.ed.gov/programs/edge/data/EDGE_GEOCODE_PRIVATESCH_1920.zip",
-              destfile = "data/tempdata/private_schools.zip")
-unzip(zipfile = "data/tempdata/private_schools.zip", exdir = "data/tempdata/private_schools")
-
-privschools_sf = st_read(dsn = "data/tempdata/private_schools/EDGE_GEOCODE_PRIVATESCH_1920.shp")
+              destfile = "data20/tempdata/private_schools.zip")
+unzip(zipfile = "data20/tempdata/private_schools.zip", exdir = "data20/tempdata/private_schools")
+privschools_sf = st_read(dsn = "data20/tempdata/private_schools/EDGE_GEOCODE_PRIVATESCH_1920.shp")
 # geometry type:  POINT
 # dimension:      XY
 # epsg (SRID):    4269
@@ -64,10 +64,10 @@ privschools_sf = st_read(dsn = "data/tempdata/private_schools/EDGE_GEOCODE_PRIVA
 # get school attendance boundaries: https://nces.ed.gov/programs/edge/SABS
 # Details: https://nces.ed.gov/pubs2015/2015118.pdf
 url <- "https://nces.ed.gov/programs/edge/data/SABS_1516.zip"
-download.file(url, destfile="data/tempdata/SABS_1516.zip", method="libcurl")
-unzip("data/tempdata/SABS_1516.zip", exdir = "data/tempdata/sabs_1516")
+download.file(url, destfile="data20/tempdata/SABS_1516.zip", method="libcurl")
+unzip("data20/tempdata/SABS_1516.zip", exdir = "data20/tempdata/sabs_1516")
 
-sabs_sf <- st_read("data/tempdata/sabs_1516/SABS_1516/SABS_1516.shp")
+sabs_sf <- st_read("data20/tempdata/sabs_1516/SABS_1516/SABS_1516.shp")
 # geometry type:  MULTIPOLYGON
 # dimension:      XY
 # epsg (SRID):    3857
@@ -142,10 +142,9 @@ sabshigh_sf <- sabs_sf %>%
 
 # ....................................................
 # 4. Save as geojson ----
-st_write(schools_sf, "data/schools_sf.geojson", driver = "GeoJSON", delete_dsn = TRUE) 
+st_write(schools_sf, "data20/data/schools_sf.geojson", driver = "GeoJSON", delete_dsn = TRUE) 
 # st_crs(schools_sf)
-# schools_sf <- st_read("data/schools_sf.geojson") 
-st_write(sabselem_sf, "data/sabselem_sf.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-st_write(sabshigh_sf, "data/sabshigh_sf.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(sabselem_sf, "data20/data/sabselem_sf.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(sabshigh_sf, "data20/data/sabshigh_sf.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 
 

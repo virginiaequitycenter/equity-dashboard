@@ -1,5 +1,5 @@
 ####################################################
-# Greater Charlottesville Regional Equity Atlas
+# Greater Charlottesville Regional Equity Atlas (2020)
 ####################################################
 # Acquire Park geometry data
 # Last updated: 01/11/2023
@@ -23,11 +23,10 @@ library(leaflet)
 # ....................................................
 # 2. Download data ----
 # define bounding box via county shape files
-ccode <- read_csv("data/county_codes.csv")
-ccode <- ccode[1:6,]
+ccode <- read_csv("data20/county_codes.csv")
 region <- ccode$code # list of desired counties
 
-cville_bounds <- tracts(state = 'VA', county = region, year = 2022) 
+cville_bounds <- tracts(state = 'VA', county = region, year = 2020) 
 
 # align crs
 cville_bounds <- sf::st_transform(cville_bounds, 4326)
@@ -57,7 +56,7 @@ parks3_bounds <- st_intersection(st_make_valid(parks3), cville_bounds)
 # for now, I filter based on the column names of the data frame with the 
 # fewest columns 
 parkvar1 <- intersect(names(parks1_bounds), names(parks2_bounds))
-parkvar2 <- names(parks3_bounds)[colnames(parks3_bounds) %in% parkvars]
+parkvar2 <- names(parks3_bounds)[colnames(parks3_bounds) %in% parkvar1]
 parkvars <- intersect(parkvar1, parkvar2)
 
 parks1_bounds <- parks1_bounds[,colnames(parks1_bounds) %in% parkvars]
@@ -149,7 +148,7 @@ rownames(parks) <- NULL
 # ....................................................
 # 4. Save date as geojson  
 # Save as geojson
-st_write(parks, "data/parks_OSM_sf.geojson", driver = "GeoJSON", delete_dsn = TRUE, factorsAsCharacter = TRUE) 
+st_write(parks, "data20/parks_OSM_sf.geojson", driver = "GeoJSON", delete_dsn = TRUE, factorsAsCharacter = TRUE) 
 
 st_crs(parks)
 

@@ -1,5 +1,5 @@
 ####################################################
-# Greater Charlottesville Regional Equity Atlas
+# Greater Charlottesville Regional Equity Atlas (2020)
 ####################################################
 # Acquire ACS data
 # Last updated: 1/10/2023
@@ -16,10 +16,11 @@
 # * Median personal earnings
 # * Net school enrollment
 
-# Based on: ACS 2017-2021 
+# Based on: ACS 2016-2020 
 # Geography: Tracts in Localities in Charlottesville region
-#     Charlottesville, Albemarle, Greene 
-#     Louisa, Fluvanna, Nelson,
+#     Charlottesville, Albemarle, Greene, Louisa, 
+#     Fluvanna, Nelson, Buckingham, Madison, Orange
+#     (include Augusta, Waynesboro, Staunton?)
 ####################################################
 # 1. Load libraries, provide api key (if needed), identify variables
 # 2. Define variables, pull data
@@ -84,8 +85,7 @@ library(tidycensus)
 # 2. Define localities, variables, pull data ----
 
 # List of desired localities by FIPS
-ccode <- read_csv("data/county_codes.csv")
-ccode <- ccode[1:6,]
+ccode <- read_csv("data20/county_codes.csv")
 region <- ccode$code # list of desired counties
 # - 003 Albemarle County  
  # - 015 Augusta County
@@ -135,7 +135,7 @@ tract_data_s <- get_acs(geography = "tract",
                       state = "VA", 
                       county = region, 
                       survey = "acs5",
-                      year = 2021, 
+                      year = 2020, 
                       output = "wide")
 
 tract_data_b <- get_acs(geography = "tract",
@@ -143,7 +143,7 @@ tract_data_b <- get_acs(geography = "tract",
                        state = "VA", 
                        county = region, 
                        survey = "acs5",
-                       year = 2021, 
+                       year = 2020, 
                        output = "wide")
 
 # rename variables
@@ -210,28 +210,28 @@ tract_race <- get_acs(geography = "tract",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = 2021)
+          year = 2020)
 
 tract_age <- get_acs(geography = "tract", 
           table = "S0101", 
           state = "VA", 
           county = region, 
           survey = "acs5", 
-          year = 2021)
+          year = 2020)
 
 tract_enroll <- get_acs(geography = "tract", 
           table = "S1401", 
           state = "VA", 
           county = region, 
           survey = "acs5", 
-          year = 2021)
+          year = 2020)
 
 tract_disability <- get_acs(geography = "tract", 
                              table = "C18130", 
                              state = "VA", 
                              county = region, 
                              survey = "acs5",
-                             year = 2021) 
+                             year = 2020) 
 
 
 # ....................................................
@@ -358,7 +358,7 @@ tract_data <- tract_data_s %>%
   left_join(tract_dis)
 
 tract_data <- tract_data %>% 
-  mutate(year = "2021") %>% 
+  mutate(year = "2020") %>% 
   select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, indigE, indigM, othraceE, othraceM, multiE, multiM, ltnxE, ltnxM, everything())
 
 tract_data <- tract_data %>% 
@@ -370,10 +370,7 @@ tract_data <- tract_data %>%
 # 4. Summarize/Examine indicators ----
 tract_data %>% select_at(vars(ends_with("E"))) %>% summary()
 
-ggplot(tract_data, aes(x = bamoreE, y = giniE)) + 
-  geom_point() + geom_smooth()
-
 
 # ....................................................
 # 5. Save ----
-saveRDS(tract_data, file = "data/tract_data.RDS") 
+saveRDS(tract_data, file = "data20/tract_data.RDS") 

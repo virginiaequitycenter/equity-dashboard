@@ -1,5 +1,5 @@
 ####################################################
-# Greater Charlottesville Region Equity Profile
+# Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Acquire ACS data
 # Last updated: 1/10/2023
@@ -21,9 +21,8 @@
 # 
 # Based on: ACS 2017-2021 
 # Geography: Localities in Charlottesville region
-#     Charlottesville, Albemarle, Greene, Louisa, 
-#     Fluvanna, Nelson, Buckingham, Madison, Orange
-#     (include Augusta, Waynesboro, Staunton?)
+#     Charlottesville, Albemarle, Greene 
+#     Louisa, Fluvanna, Nelson,
 ####################################################
 # 1. Load libraries, provide api key (if needed), identify variables
 # 2. Define variables, pull data
@@ -90,7 +89,8 @@ library(tidycensus)
 # 2. Define localities, variables, pull tables ----
 
 # List of desired localities by FIPS
-ccode <- read_csv("datacode/county_codes.csv")
+ccode <- read_csv("data/county_codes.csv")
+ccode <- ccode[1:6,]
 region <- ccode$code # list of desired counties
 # - 003 Albemarle County  
 # - 015 Augusta County
@@ -402,7 +402,6 @@ county_data %>% select_at(vars(ends_with("E"))) %>% summary()
 # 6. Save ----
 # save rcaa_recap and rcaa_recap_geo
 saveRDS(county_data, file = "data/county_data.RDS") 
-# county_data <- readRDS("data/county_data.RDS")
 
 
 
