@@ -281,7 +281,7 @@ server <- function(input, output, session) {
       addCircles(data =  filter(schools_sf, county %in% f),
                  group="Schools",
                  popup = ~NAME) %>%
-      addPolygons(data = filter(sabselem_sf, county.x %in% f), # changed county to county.x (fix in data_combine)
+      addPolygons(data = filter(sabselem_sf, county %in% f), 
                   group="Elem School Zone",
                   color = "blue", fill = FALSE, weight = 2,
                   popup = ~schnam,
