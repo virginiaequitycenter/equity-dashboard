@@ -215,6 +215,49 @@ server <- function(input, output, session) {
         drop_na()
     }
   })
+  
+  
+  # to make helper() info render
+  observe_helpers()
+  
+  # county selections (select/deselect all)
+  observe({
+    if (input$selectall_geo == 0) return(NULL)
+    else if (input$selectall_geo %% 2 == 0){
+      updateCheckboxGroupInput(session, inputId = "geo", "Counties",
+                               choices = counties, selected = counties,
+                               inline = TRUE)
+    } else { 
+      updateCheckboxGroupInput(session, "geo", "Counties",
+                               choices = counties, inline = TRUE)
+    }
+  })
+  
+  # geography selections - update selection of indicators based on geo level
+  observeEvent(input$geo_df, {
+    if (input$geo_df == "Block Group"){
+      updateSelectInput(session, "indicator1", choices = ind_choices_bg, 
+                        selected = ind_choices_bg$People['Estimated Population']
+      )
+      updateSelectInput(session, "indicator2", choices = ind_choices_bg,
+                        selected = ind_choices_bg$Housing['Total Housing Units']
+      )
+    } else if (input$geo_df == "Census Tract"){
+      updateSelectInput(session, "indicator1", choices = ind_choices_ct,
+                        selected = ind_choices_ct$People['Estimated Population']
+      )
+      updateSelectInput(session, "indicator2", choices = ind_choices_ct,
+                        selected = ind_choices_ct$Housing['Total Housing Units']
+      )
+    } else {
+      updateSelectInput(session, "indicator1", choices = ind_choices_county,
+                        selected = ind_choices_county$People['Estimated Population']
+      )
+      updateSelectInput(session, "indicator2", choices = ind_choices_county,
+                        selected = ind_choices_county$Housing['Total Housing Units']
+      )
+    }
+  })
 
   ## output scatterplot ----
   output$scatterplot <- renderPlotly({
@@ -401,3 +444,9 @@ server <- function(input, output, session) {
   }
 # Run the application ----
 shinyApp(ui = ui, server = server)
+
+
+
+
+
+
