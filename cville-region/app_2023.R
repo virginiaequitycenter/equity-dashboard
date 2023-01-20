@@ -106,14 +106,14 @@ ui <- fluidPage(
 
                             # Place figures
                             column(8,
-                                   tabsetPanel(type = "tabs",
+                                   tabsetPanel(id = "tabs",
                                                tabPanel(title = 'Map 1', 
                                                         tags$div(style="font-size:13px", tags$p("Each census tract is ranked from Low to High on the measures you select from the left (Variable 1) and the right (Variable 2). The legend in the upper left corner of the map provides a key for what each color represents. Zoom in to see specific areas more closely or zoom out to see the full region. Click on specific tracts to see the values for each measure, as well as how the tract ranks (Low, Medium, High) relative to others in the selected region.")),
-                                                        leafletOutput(outputId = 'leaf', width = '100%', height = '450')
+                                                        leafletOutput(outputId = 'map1', width = '100%', height = '450')
                                                ),
                                                tabPanel(title = 'Map 2', 
                                                         tags$div(style="font-size:13px", tags$p("Each census tract is ranked from Low to High on the measures you select from the left (Variable 1) and the right (Variable 2). The legend in the upper left corner of the map provides a key for what each color represents. Zoom in to see specific areas more closely or zoom out to see the full region. Click on specific tracts to see the values for each measure, as well as how the tract ranks (Low, Medium, High) relative to others in the selected region.")),
-                                                        leafletOutput(outputId = 'leaf', width = '100%', height = '450')
+                                                        leafletOutput(outputId = 'map2', width = '100%', height = '450')
                                                ),
                                                tabPanel(title = "Correlation",
                                                         tags$div(style="font-size:13px", tags$p("Each census tract in the Charlottesville region is represented with a dot, plotted by the value of the tract on the measures you select on the left (Variable 1) and the right (Variable 2). The size of each dot is based on the population of the tract so that tracts with more people appear larger and the color is based on the locality of the tract. The gray figures on the top and right show how frequently high and low values of the selected variables occur in the region; taller bars mean that range of values is more common.")),
@@ -164,20 +164,25 @@ ui <- fluidPage(
                                    #              inline = TRUE)
                             ),
 
-                            # locality selector
-                            column(6,
-                                   checkboxGroupInput(inputId = "locality",
-                                                      label = h4("Select Localities"),
-                                                      choices = c("Albemarle" = "003",
-                                                                  "Charlottesvile" = "540",
-                                                                  "Fluvanna" = "065",
-                                                                  "Greene" = "079",
-                                                                  "Louisa" = "109",
-                                                                  "Nelson" = "125"),
-                                                      selected = c("003", "540", "065",
-                                                                   "079", "109", "125"),
-                                                      inline = TRUE)
-                            ),
+                            # pick counties
+                            checkboxGroupInput(
+                              inputId = "geo", 
+                              label = "Localities", 
+                              choices = counties, 
+                              selected = counties,
+                              inline = TRUE) %>% # checkboxGroupInput ends, pipe to helper()
+                              helper(type = "inline",
+                                     icon = "info-circle",
+                                     content = helpers$counties,
+                                     size = "m"),
+                            
+                            # add select all option
+                            actionButton(inputId = "selectall_geo", 
+                                         label = "Select/Unselect All"),
+                            
+                            tags$br(),
+                            tags$br(),
+
                             
                             # pick geographic level
                             radioButtons(inputId = "geo_df",
@@ -219,8 +224,24 @@ ui <- fluidPage(
 # Define Server Logic ----
 server <- function(input, output, session) {
   
-  # to make helper() info render
-  observe_helpers()
+  # get map data
+  geo_data <- reactive({
+    if (input$indicator1 == input$indicator2) {
+      session$sendCustomMessage(type = 'testmessage',
+                                message = paste0("Please make sure that you've selected two different variables."))
+    } else if (length(input$locality) == 0) {
+      session$sendCustomMessage(type = 'testmessage',
+                                message = paste0("At least one locality must be selected."))
+    } else {
+      all_data <- all_data %>%
+        dplyr::select(x = !!sym(input$indicator1),
+                      y = !!sym(input$indicator2),
+                      locality, countyname, tract, geoid,
+                      pop = pop) %>%
+        dplyr::filter(locality %in% input$locality) %>%
+        drop_na()
+    }
+  })
   
   # county selections (select/deselect all)
   observe({
@@ -260,20 +281,13 @@ server <- function(input, output, session) {
       )
     }
   })
-  
-  # get map data
-  md <- reactive({
-    all_data %>% filter(county.nice %in% input$geo &
-                          GEO_LEVEL == input$geo_df &
-                          year == "2021") 
-  })
 
   ## output scatterplot ----
   output$scatterplot <- renderPlotly({
     if (input$indicator1 == input$indicator2 | length(input$locality) == 0) {
       plotly_empty()
     } else {
-      d <- st_drop_geometry(geo_df())
+      d <- st_drop_geometry(geo_data())
       xhist <- plot_ly(data = d, x = ~x,
                        type = "histogram", nbinsx = 20,
                        alpha =.75, color = I("grey")) %>%
@@ -333,7 +347,7 @@ server <- function(input, output, session) {
   output$map <- output$map2 <- renderLeaflet({
     
     # filter for "Parks", "Schools", "Elem School Zone", "Magisterial Districts"
-    f <- all_data()[["COUNTYFP"]]
+    f <- geo_data()[["COUNTYFP"]]
     
     counties_geo %>%
       #sf::st_transform(4326) %>%
@@ -384,10 +398,10 @@ server <- function(input, output, session) {
   ################
   
   observe({
-    if(input$tabs == "tab1"){
+    if(input$tabs == "map1"){
       
       # vector of values
-      ind1 <- md() %>% 
+      ind1 <- geo_data() %>% 
         filter(!is.na(.data[[input$indicator1]])) %>% 
         pull(input$indicator1)
       
@@ -396,8 +410,8 @@ server <- function(input, output, session) {
           title = "Data not available",
           "Data not available for the current Geographic Level or selected Year." ))
       } else {
-        leafletProxy("map", data = md()
-                     # data = sf::st_transform(md(), 4326)
+        leafletProxy("map", data = geo_data()
+                     # data = sf::st_transform(geo_data(), 4326)
         ) %>%
           clearControls() %>%
           addProviderTiles(input$map_geo) %>%
@@ -408,8 +422,8 @@ server <- function(input, output, session) {
                       smoothFactor = 0.2,
                       popup = paste0(attr(ind1, "goodname"), ": ",
                                      ind1, "<br>",
-                                     md()[["NAME"]], "<br>",
-                                     md()[["tractnames"]])) %>%
+                                     geo_data()[["NAME"]], "<br>",
+                                     geo_data()[["tractnames"]])) %>%
           addLegend(pal = colorNumeric(mycolors, domain = ind1),
                     values = ind1,
                     position = "topright",
@@ -419,9 +433,9 @@ server <- function(input, output, session) {
     }
   })
   
-  output$maptitle <- renderText({paste0(attr(md()[[input$indicator1]], "goodname"),
+  output$maptitle <- renderText({paste0(attr(geo_data()[[input$indicator1]], "goodname"),
                                         ", ", input$time) })
-  output$source <- renderText({attr(md()[[input$indicator1]], "source")})
+  output$source <- renderText({attr(geo_data()[[input$indicator1]], "source")})
   
   
   ################
@@ -430,12 +444,12 @@ server <- function(input, output, session) {
   
   observe({
     
-    if (input$tabs == "tab2"){
+    if (input$tabs == "map2"){
       
       # redraw a basic map if None selected again
       if (input$indicator2 == "None"){
-        leafletProxy("map2", data = md()
-                     # data = sf::st_transform(md(), 4326)
+        leafletProxy("map2", data = geo_data()
+                     # data = sf::st_transform(geo_data(), 4326)
         ) %>%
           clearControls() %>% 
           clearShapes() %>%
@@ -446,7 +460,7 @@ server <- function(input, output, session) {
       } else {  
         
         # vector of values
-        ind2 <- md() %>% 
+        ind2 <- geo_data() %>% 
           filter(!is.na(.data[[input$indicator2]])) %>% 
           pull(input$indicator2)
         
@@ -455,8 +469,8 @@ server <- function(input, output, session) {
             title = "Data not available",
             "Data not available for the current Geographic Level or selected Year." ))
         } else {
-          leafletProxy("map2", data = md()
-                       # data = sf::st_transform(md(), 4326)
+          leafletProxy("map2", data = geo_data()
+                       # data = sf::st_transform(geo_data(), 4326)
           ) %>%
             clearControls() %>% 
             addProviderTiles(input$map_geo) %>% 
@@ -467,8 +481,8 @@ server <- function(input, output, session) {
                         smoothFactor = 0.2,
                         popup = paste0(attr(ind2, "goodname"), ": ",
                                        ind2, "<br>",
-                                       md()[["NAME"]], "<br>",
-                                       md()[["tractnames"]])) %>%
+                                       geo_data()[["NAME"]], "<br>",
+                                       geo_data()[["tractnames"]])) %>%
             addLegend(pal = colorNumeric(mycolors, domain = ind2),
                       values = ind2,
                       position = "topright",
@@ -480,17 +494,17 @@ server <- function(input, output, session) {
   })
   
   output$maptitle2 <- renderText({
-    if (input$indicator2 != "None") paste0(attr(md()[[input$indicator2]], "goodname"),
+    if (input$indicator2 != "None") paste0(attr(geo_data()[[input$indicator2]], "goodname"),
                                            ", ", input$time) })
   output$source2 <- renderText({
-    if (input$indicator2 != "None") attr(md()[[input$indicator2]], "source")})
+    if (input$indicator2 != "None") attr(geo_data()[[input$indicator2]], "source")})
   
   ## output tercile plot ----
   output$tercile_plot <- renderPlotly({
     if (input$indicator1 %in% cant_map | input$indicator2 %in% cant_map | input$indicator1 == input$indicator2 | length(input$locality) == 0) {
       plotly_empty()
     } else {
-      to_tercile <- bi_class(geo_df(), x = x, y = y, style = "quantile", dim = 3)
+      to_tercile <- bi_class(geo_data(), x = x, y = y, style = "quantile", dim = 3)
       to_tercile$var1_tercile <- stri_extract(to_tercile$bi_class, regex = '^\\d{1}(?=-\\d)')
 
       to_tercile$`Var 1 Group` <- ifelse(to_tercile$var1_tercile == 1, 'Low', ifelse(to_tercile$var1_tercile == 2, 'Medium', ifelse(to_tercile$var1_tercile == 3, 'High', '')))
@@ -519,48 +533,48 @@ server <- function(input, output, session) {
   # by selector
   # indicator 1
   output$ind1_defn <- renderText({
-    attr(geo_df()$x, "description")
+    attr(geo_data()$x, "description")
   })
 
   output$ind1_source <- renderText({
-    paste("Source: ", attr(geo_df()$x, "source"))
+    paste("Source: ", attr(geo_data()$x, "source"))
   })
 
   # indicator 2
   output$ind2_defn <- renderText({
-    attr(geo_df()$y, "description")
+    attr(geo_data()$y, "description")
   })
 
   # indicator 2 description by selector
   output$ind2_source <- renderText({
-    paste("Source: ", attr(geo_df()$y, "source"))
+    paste("Source: ", attr(geo_data()$y, "source"))
   })
 
   # detailed var info on var info tab
   # indicator 1
   output$var1_name <- renderText({
-    attr(geo_df()$x, "goodname")
+    attr(geo_data()$x, "goodname")
   })
 
   output$var1_abt <- renderText({
-    attr(geo_df()$x, "about")
+    attr(geo_data()$x, "about")
   })
 
   output$var1_source <- renderText({
-    paste("Source: ", attr(geo_df()$x, "source"))
+    paste("Source: ", attr(geo_data()$x, "source"))
   })
 
   # indicator 2
   output$var2_name <- renderText({
-    attr(geo_df()$y, "goodname")
+    attr(geo_data()$y, "goodname")
   })
 
   output$var2_abt <- renderText({
-    attr(geo_df()$y, "about")
+    attr(geo_data()$y, "about")
   })
 
   output$var2_source <- renderText({
-    paste("Source: ", attr(geo_df()$y, "source"))
+    paste("Source: ", attr(geo_data()$y, "source"))
   })
 
   ## about page ----
