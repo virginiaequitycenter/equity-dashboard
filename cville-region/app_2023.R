@@ -109,7 +109,7 @@ ui <- fluidPage(
                                    tabsetPanel(id = "tabs",
                                                tabPanel(title = 'Map 1', 
                                                         tags$div(style="font-size:13px", tags$p("Each census tract is ranked from Low to High on the measures you select from the left (Variable 1) and the right (Variable 2). The legend in the upper left corner of the map provides a key for what each color represents. Zoom in to see specific areas more closely or zoom out to see the full region. Click on specific tracts to see the values for each measure, as well as how the tract ranks (Low, Medium, High) relative to others in the selected region.")),
-                                                        leafletOutput(outputId = 'map1', width = '100%', height = '450')
+                                                        leafletOutput(outputId = 'map', width = '100%', height = '450')
                                                ),
                                                tabPanel(title = 'Map 2', 
                                                         tags$div(style="font-size:13px", tags$p("Each census tract is ranked from Low to High on the measures you select from the left (Variable 1) and the right (Variable 2). The legend in the upper left corner of the map provides a key for what each color represents. Zoom in to see specific areas more closely or zoom out to see the full region. Click on specific tracts to see the values for each measure, as well as how the tract ranks (Low, Medium, High) relative to others in the selected region.")),
