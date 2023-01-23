@@ -224,23 +224,17 @@ ui <- fluidPage(
 # Define Server Logic ----
 server <- function(input, output, session) {
   
-  # get map data
-  geo_data <- reactive({
-    if (input$indicator1 == input$indicator2) {
-      session$sendCustomMessage(type = 'testmessage',
-                                message = paste0("Please make sure that you've selected two different variables."))
-    } else if (length(input$locality) == 0) {
-      session$sendCustomMessage(type = 'testmessage',
-                                message = paste0("At least one locality must be selected."))
-    } else {
-      all_data <- all_data %>%
-        dplyr::select(x = !!sym(input$indicator1),
-                      y = !!sym(input$indicator2),
-                      locality, countyname, tract, geoid,
-                      pop = pop) %>%
-        dplyr::filter(locality %in% input$locality) %>%
-        drop_na()
-    }
+  md <- reactive({ 
+    all_data %>%
+    dplyr::select(x = !!sym(input$indicator1),
+                  y = !!sym(input$indicator2),
+                  locality, county.nice, tract, GEOID,
+                  pop = totalpopE) %>%
+    dplyr::filter(locality %in% input$locality,
+                  county.nice %in% input$geo &
+                    GEO_LEVEL == input$geo_df &
+                    year == "2021") %>%
+    drop_na()
   })
   
   # county selections (select/deselect all)
@@ -287,7 +281,7 @@ server <- function(input, output, session) {
     if (input$indicator1 == input$indicator2 | length(input$locality) == 0) {
       plotly_empty()
     } else {
-      d <- st_drop_geometry(geo_data())
+      d <- st_drop_geometry(md())
       xhist <- plot_ly(data = d, x = ~x,
                        type = "histogram", nbinsx = 20,
                        alpha =.75, color = I("grey")) %>%
@@ -347,7 +341,7 @@ server <- function(input, output, session) {
   output$map <- output$map2 <- renderLeaflet({
     
     # filter for "Parks", "Schools", "Elem School Zone", "Magisterial Districts"
-    f <- geo_data()[["COUNTYFP"]]
+    f <- md()[["COUNTYFP"]]
     
     counties_geo %>%
       #sf::st_transform(4326) %>%
@@ -401,7 +395,7 @@ server <- function(input, output, session) {
     if(input$tabs == "map1"){
       
       # vector of values
-      ind1 <- geo_data() %>% 
+      ind1 <- md() %>% 
         filter(!is.na(.data[[input$indicator1]])) %>% 
         pull(input$indicator1)
       
@@ -410,7 +404,7 @@ server <- function(input, output, session) {
           title = "Data not available",
           "Data not available for the current Geographic Level or selected Year." ))
       } else {
-        leafletProxy("map", data = geo_data()
+        leafletProxy("map", data = md()
                      # data = sf::st_transform(geo_data(), 4326)
         ) %>%
           clearControls() %>%
@@ -422,8 +416,8 @@ server <- function(input, output, session) {
                       smoothFactor = 0.2,
                       popup = paste0(attr(ind1, "goodname"), ": ",
                                      ind1, "<br>",
-                                     geo_data()[["NAME"]], "<br>",
-                                     geo_data()[["tractnames"]])) %>%
+                                     md()[["NAME"]], "<br>",
+                                     md()[["tractnames"]])) %>%
           addLegend(pal = colorNumeric(mycolors, domain = ind1),
                     values = ind1,
                     position = "topright",
@@ -433,9 +427,9 @@ server <- function(input, output, session) {
     }
   })
   
-  output$maptitle <- renderText({paste0(attr(geo_data()[[input$indicator1]], "goodname"),
+  output$maptitle <- renderText({paste0(attr(md()[[input$indicator1]], "goodname"),
                                         ", ", input$time) })
-  output$source <- renderText({attr(geo_data()[[input$indicator1]], "source")})
+  output$source <- renderText({attr(md()[[input$indicator1]], "source")})
   
   
   ################
@@ -448,7 +442,7 @@ server <- function(input, output, session) {
       
       # redraw a basic map if None selected again
       if (input$indicator2 == "None"){
-        leafletProxy("map2", data = geo_data()
+        leafletProxy("map2", data = md()
                      # data = sf::st_transform(geo_data(), 4326)
         ) %>%
           clearControls() %>% 
@@ -460,7 +454,7 @@ server <- function(input, output, session) {
       } else {  
         
         # vector of values
-        ind2 <- geo_data() %>% 
+        ind2 <- md() %>% 
           filter(!is.na(.data[[input$indicator2]])) %>% 
           pull(input$indicator2)
         
@@ -469,7 +463,7 @@ server <- function(input, output, session) {
             title = "Data not available",
             "Data not available for the current Geographic Level or selected Year." ))
         } else {
-          leafletProxy("map2", data = geo_data()
+          leafletProxy("map2", data = md()
                        # data = sf::st_transform(geo_data(), 4326)
           ) %>%
             clearControls() %>% 
@@ -481,8 +475,8 @@ server <- function(input, output, session) {
                         smoothFactor = 0.2,
                         popup = paste0(attr(ind2, "goodname"), ": ",
                                        ind2, "<br>",
-                                       geo_data()[["NAME"]], "<br>",
-                                       geo_data()[["tractnames"]])) %>%
+                                       md()[["NAME"]], "<br>",
+                                       md()[["tractnames"]])) %>%
             addLegend(pal = colorNumeric(mycolors, domain = ind2),
                       values = ind2,
                       position = "topright",
@@ -494,17 +488,17 @@ server <- function(input, output, session) {
   })
   
   output$maptitle2 <- renderText({
-    if (input$indicator2 != "None") paste0(attr(geo_data()[[input$indicator2]], "goodname"),
+    if (input$indicator2 != "None") paste0(attr(md()[[input$indicator2]], "goodname"),
                                            ", ", input$time) })
   output$source2 <- renderText({
-    if (input$indicator2 != "None") attr(geo_data()[[input$indicator2]], "source")})
+    if (input$indicator2 != "None") attr(md()[[input$indicator2]], "source")})
   
   ## output tercile plot ----
   output$tercile_plot <- renderPlotly({
     if (input$indicator1 %in% cant_map | input$indicator2 %in% cant_map | input$indicator1 == input$indicator2 | length(input$locality) == 0) {
       plotly_empty()
     } else {
-      to_tercile <- bi_class(geo_data(), x = x, y = y, style = "quantile", dim = 3)
+      to_tercile <- bi_class(md(), x = x, y = y, style = "quantile", dim = 3)
       to_tercile$var1_tercile <- stri_extract(to_tercile$bi_class, regex = '^\\d{1}(?=-\\d)')
 
       to_tercile$`Var 1 Group` <- ifelse(to_tercile$var1_tercile == 1, 'Low', ifelse(to_tercile$var1_tercile == 2, 'Medium', ifelse(to_tercile$var1_tercile == 3, 'High', '')))
@@ -533,48 +527,48 @@ server <- function(input, output, session) {
   # by selector
   # indicator 1
   output$ind1_defn <- renderText({
-    attr(geo_data()$x, "description")
+    attr(md()$x, "description")
   })
 
   output$ind1_source <- renderText({
-    paste("Source: ", attr(geo_data()$x, "source"))
+    paste("Source: ", attr(md()$x, "source"))
   })
 
   # indicator 2
   output$ind2_defn <- renderText({
-    attr(geo_data()$y, "description")
+    attr(md()$y, "description")
   })
 
   # indicator 2 description by selector
   output$ind2_source <- renderText({
-    paste("Source: ", attr(geo_data()$y, "source"))
+    paste("Source: ", attr(md()$y, "source"))
   })
 
   # detailed var info on var info tab
   # indicator 1
   output$var1_name <- renderText({
-    attr(geo_data()$x, "goodname")
+    attr(md()$x, "goodname")
   })
 
   output$var1_abt <- renderText({
-    attr(geo_data()$x, "about")
+    attr(md()$x, "about")
   })
 
   output$var1_source <- renderText({
-    paste("Source: ", attr(geo_data()$x, "source"))
+    paste("Source: ", attr(md()$x, "source"))
   })
 
   # indicator 2
   output$var2_name <- renderText({
-    attr(geo_data()$y, "goodname")
+    attr(md()$y, "goodname")
   })
 
   output$var2_abt <- renderText({
-    attr(geo_data()$y, "about")
+    attr(md()$y, "about")
   })
 
   output$var2_source <- renderText({
-    paste("Source: ", attr(geo_data()$y, "source"))
+    paste("Source: ", attr(md()$y, "source"))
   })
 
   ## about page ----
