@@ -195,6 +195,7 @@ ui <- fluidPage(
                                      icon = "info-circle",
                                      content = helpers$geo,
                                      size = "m"), 
+                            
                           
                           )
                  ),
@@ -333,60 +334,7 @@ server <- function(input, output, session) {
 
   ## output map ----
   #build static parts of map, and display initial outline of region
-  
-  ################
-  #### BASE MAP
-  ################
-  
-  output$map <- output$map2 <- renderLeaflet({
-    
-    # filter for "Parks", "Schools", "Elem School Zone", "Magisterial Districts"
-    f <- md()[["COUNTYFP"]]
-    
-    counties_geo %>%
-      #sf::st_transform(4326) %>%
-      leaflet() %>%
-      addProviderTiles(input$map_geo) %>%
-      addPolygons(color = "grey",
-                  fill = FALSE,
-                  weight = 3) %>% 
-      addCircles(data = st_collection_extract(parks_sf, "POINT"), color = "green",
-                 group="Parks",
-                 popup = ~ParkName) %>% 
-      addPolygons(data = st_collection_extract(parks_sf, "POLYGON"), color = "green",
-                  group="Parks",
-                  popup = ~ParkName) %>%
-      addCircles(data =  filter(schools_sf, county %in% f),
-                 group="Schools",
-                 popup = ~NAME) %>%
-      addPolygons(data = filter(sabselem_sf, county %in% f), 
-                  group="Elem School Zone",
-                  color = "blue", fill = FALSE, weight = 2,
-                  popup = ~schnam,
-                  highlight = highlightOptions(weight = 3,
-                                               color = "blue",
-                                               bringToFront = TRUE)) %>%
-      addPolygons(data = filter(mcd_sf, COUNTYFP %in% f), 
-                  group="Magisterial Districts",
-                  color = "purple", fill = FALSE, weight = 2,
-                  popup = ~NAMELSAD,
-                  highlight = highlightOptions(weight = 3,
-                                               color = "purple",
-                                               bringToFront = TRUE)) %>% 
-      addLayersControl(
-        overlayGroups = c("Parks", "Schools", "Elem School Zone", "Magisterial Districts"),
-        options = layersControlOptions(collapsed = FALSE), 
-        position = "bottomright"
-      ) %>% 
-      hideGroup("Parks") %>% 
-      hideGroup("Schools") %>% 
-      hideGroup("Elem School Zone") %>% 
-      hideGroup("Magisterial Districts") 
-    
-    
-  })
-  
-  
+
   ################
   #### BEGIN MAP 1
   ################
@@ -428,7 +376,7 @@ server <- function(input, output, session) {
   })
   
   output$maptitle <- renderText({paste0(attr(md()[[input$indicator1]], "goodname"),
-                                        ", ", input$time) })
+                                        ", ") })
   output$source <- renderText({attr(md()[[input$indicator1]], "source")})
   
   
@@ -489,7 +437,7 @@ server <- function(input, output, session) {
   
   output$maptitle2 <- renderText({
     if (input$indicator2 != "None") paste0(attr(md()[[input$indicator2]], "goodname"),
-                                           ", ", input$time) })
+                                           ", ") })
   output$source2 <- renderText({
     if (input$indicator2 != "None") attr(md()[[input$indicator2]], "source")})
   
