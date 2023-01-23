@@ -115,7 +115,7 @@ county_data <- county_data %>%
 
 # add segregation measures by county
 county_data <- county_data %>% 
-  left_join(seg_county, by = c("locality" = "county")) %>% 
+  left_join(seg_county, by = c("locality" = "county", "year" = "year")) %>% 
   select(move_last(., c("state", "locality")))
 
 # Generate HDI measure for County
