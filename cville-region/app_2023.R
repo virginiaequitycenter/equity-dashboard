@@ -227,15 +227,14 @@ server <- function(input, output, session) {
   
   md <- reactive({ 
     all_data %>%
+    dplyr::filter(locality %in% input$locality,
+                    county.nice %in% input$geo &
+                      GEO_LEVEL == input$geo_df &
+                      year == "2021") %>%
     dplyr::select(x = !!sym(input$indicator1),
                   y = !!sym(input$indicator2),
-                  locality, county.nice, tract, GEOID,
-                  pop = totalpopE) %>%
-    dplyr::filter(locality %in% input$locality,
-                  county.nice %in% input$geo &
-                    GEO_LEVEL == input$geo_df &
-                    year == "2021") %>%
-    drop_na()
+                  locality, county.nice, tract, GEOID) %>%
+      drop_na()
   })
   
   # county selections (select/deselect all)
@@ -305,14 +304,14 @@ server <- function(input, output, session) {
                            type = "scatter",
                            mode = 'markers', # to remove mode warning
                            fill = ~'', # to remove line.width error
-                           size = ~pop,
+                           size = ~totalpopE,
                            sizes = c(1, 500),
                            color = ~count,
                            colors = fewpal,
                            alpha = .75,
                            text = paste0("Locality: ", d$count, "<br>",
                                          "Census tract: ", d$tract, "<br>",
-                                         "Population: ", d$pop, "<br>",
+                                         "Population: ", d$totalpopE, "<br>",
                                          attr(d$x, "goodname"), ": ", round(d$x, 2), "<br>",
                                          attr(d$y, "goodname"), ": ", round(d$y, 2), "<br>"),
                            hoverinfo = "text") %>%
@@ -375,8 +374,7 @@ server <- function(input, output, session) {
     }
   })
   
-  output$maptitle <- renderText({paste0(attr(md()[[input$indicator1]], "goodname"),
-                                        ", ") })
+  output$maptitle <- renderText({paste0(attr(md()[[input$indicator1]], "goodname")) })
   output$source <- renderText({attr(md()[[input$indicator1]], "source")})
   
   
@@ -436,8 +434,7 @@ server <- function(input, output, session) {
   })
   
   output$maptitle2 <- renderText({
-    if (input$indicator2 != "None") paste0(attr(md()[[input$indicator2]], "goodname"),
-                                           ", ") })
+    if (input$indicator2 != "None") paste0(attr(md()[[input$indicator2]], "goodname")) })
   output$source2 <- renderText({
     if (input$indicator2 != "None") attr(md()[[input$indicator2]], "source")})
   
