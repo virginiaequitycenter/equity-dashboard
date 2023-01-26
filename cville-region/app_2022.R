@@ -325,6 +325,7 @@ server <- function(input, output, session) {
           title = "Data not available",
           "Data not available for the current Geographic Level or selected Year." ))
       } else {
+        
         leafletProxy("map", data = md()
                      # data = sf::st_transform(md(), 4326)
                      ) %>%
