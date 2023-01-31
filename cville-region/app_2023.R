@@ -1,6 +1,6 @@
 # Published version
 # Equity Indicators
-# Last updated/deployed: 2022-12-09 ll
+# Last updated/deployed: 2023-1-31 ll
 
 library(shiny)
 library(shinydashboard)
@@ -288,8 +288,19 @@ server <- function(input, output, session) {
   #### BEGIN MAP 1
   ################
   
-  observe({
-    if(input$tabs == "tab1"){
+  # reactive function to detect when variable 1, variable 2, or locality selection changes
+  listen_closely <- reactive({
+    list(input$indicator1,input$indicator2, input$geo)
+  })
+  
+  # when a variable or locality selection is changed, render the appropriate bichoropleth without losing the legend
+  observeEvent(listen_closely(), {
+    if (input$indicator1 == input$indicator2 | length(input$geo) == 0) {
+      leafletProxy('map1') %>% clearShapes()
+    } else if (input$indicator1 %in% cant_map) {
+      session$sendCustomMessage(type = 'testmessage', message = cant_map_message)
+      leafletProxy('map1') %>% clearShapes()
+    } else if(input$tabs == "tab1"){
       
       # vector of values
       
@@ -330,9 +341,19 @@ server <- function(input, output, session) {
   #### BEGIN MAP 2
   ################
   
-  observe({
-    
-    if (input$tabs == "tab2"){
+  # reactive function to detect when variable 1, variable 2, or locality selection changes
+  listen_closely <- reactive({
+    list(input$indicator1,input$indicator2, input$geo)
+  })
+  
+  # when a variable or locality selection is changed, render the appropriate bichoropleth without losing the legend
+  observeEvent(listen_closely(), {
+    if (input$indicator2 == input$indicator1 | length(input$geo) == 0) {
+      leafletProxy('map2') %>% clearShapes()
+    } else if (input$indicator2 %in% cant_map) {
+      session$sendCustomMessage(type = 'testmessage', message = cant_map_message)
+      leafletProxy('map2') %>% clearShapes()
+    } else if(input$tabs == "tab2"){
         
         if (all(is.na(md()$y))){
           showModal(modalDialog(
