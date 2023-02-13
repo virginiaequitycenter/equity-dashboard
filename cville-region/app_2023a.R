@@ -74,11 +74,11 @@ ui <- fluidPage(
                     tabsetPanel(id = "tabs",
                                 tabPanel(title = 'Map 1', value = 'tab1',
                                          tags$div(style="font-size:13px", tags$p("Click on areas below to view names and indicator values.")),
-                                         leafletOutput(outputId = 'map1', width = '100%', height = '450')
+                                         leafletOutput(outputId = 'basemap1', width = '100%', height = '450')
                                 ),
                                 tabPanel(title = 'Map 2', value = 'tab2',
                                          tags$div(style="font-size:13px", tags$p("Click on areas below to view names and indicator values.")),
-                                         leafletOutput(outputId = 'map2', width = '100%', height = '450')
+                                         leafletOutput(outputId = 'basemap2', width = '100%', height = '450')
                                 ),
                                 tabPanel(title = "Correlation",
                                          tags$div(style="font-size:13px", tags$p("Each census tract in the Charlottesville region is represented with a dot, plotted by the value of the tract on the measures you select on the left (Variable 1) and the right (Variable 2). The size of each dot is based on the population of the tract so that tracts with more people appear larger and the color is based on the locality of the tract. The gray figures on the top and right show how frequently high and low values of the selected variables occur in the region; taller bars mean that range of values is more common.")),
@@ -235,10 +235,34 @@ server <- function(input, output, session) {
   })
   
   ################
-  #### BASE MAP
+  #### BASE MAP 1 
   ################
+  # reactive function to detect when variable 1, variable 2, or locality selection changes
+  listen_closely <- reactive({
+    list(input$indicator1,input$indicator2, input$geo)
+  })
   
-  output$map1 <- output$map2 <- renderLeaflet({
+  # when a variable or locality selection is changed, render the map
+  observeEvent(listen_closely(), {
+    if (input$indicator1 == input$indicator2 | length(input$geo) == 0) {
+      leafletProxy('basemap1') %>% clearShapes()
+    } else if (input$indicator1 %in% cant_map) {
+      session$sendCustomMessage(type = 'testmessage', message = cant_map_message)
+      leafletProxy('basemap1') %>% clearShapes()
+      if (input$tabs == "tab2") {
+        leafletProxy('basemap1') %>% clearShapes()
+      }
+    } else if(input$tabs == "tab1"){
+      
+      # vector of values
+      
+      if (all(is.na(md()$x))){
+        showModal(modalDialog(
+          title = "Data not available",
+          "Data not available for the current Geographic Level or selected Year." ))
+      } else {
+        
+        output$basemap1 <- renderLeaflet({
     
     # filter for "Parks", "Schools", "Elem School Zone", "Magisterial Districts"
     
@@ -281,40 +305,97 @@ server <- function(input, output, session) {
       hideGroup("Elem School Zone") %>% 
       hideGroup("Magisterial Districts") 
     
-    
-  })
+        }) 
+      }
+    }
+    })
   
+  ################
+  #### BASE MAP 2 
+  ################
+        
+        # reactive function to detect when variable 1, variable 2, or locality selection changes
+        listen_closely <- reactive({
+          list(input$indicator1,input$indicator2, input$geo)
+        })
+        
+        # when a variable or locality selection is changed, render the map 
+        observeEvent(listen_closely(), {
+          if (length(input$geo) == 0) {
+            leafletProxy('basemap2') %>% clearShapes()
+          } else if (input$indicator2 %in% cant_map) {
+            session$sendCustomMessage(type = 'testmessage', message = cant_map_message)
+            leafletProxy('basemap2') %>% clearShapes()
+            if (input$tabs == "tab2") {
+              leafletProxy('basemap2') %>% clearShapes()
+            }
+          } else if(input$tabs == "tab2"){
+            
+            if (all(is.na(md()$y))){
+              showModal(modalDialog(
+                title = "Data not available",
+                "Data not available for the current Geographic Level or selected Year." ))
+            } else {
+  
+              output$basemap2 <- renderLeaflet({
+    
+    # filter for "Parks", "Schools", "Elem School Zone", "Magisterial Districts"
+    
+    counties_geo %>%
+      #sf::st_transform(4326) %>%
+      leaflet() %>%
+      addProviderTiles(input$map_geo) %>%
+      addPolygons(color = "grey",
+                  weight = 3) %>% 
+      addCircles(data = st_collection_extract(parks_sf, "POINT"), color = "green",
+                 group="Parks",
+                 popup = ~ParkName) %>% 
+      addPolygons(data = st_collection_extract(parks_sf, "POLYGON"), color = "green",
+                  group="Parks",
+                  popup = ~ParkName) %>%
+      addCircles(data =  filter(schools_sf),
+                 group="Schools",
+                 popup = ~NAME) %>%
+      addPolygons(data = filter(sabselem_sf), 
+                  group="Elem School Zone",
+                  color = "blue", fill = FALSE, weight = 2,
+                  popup = ~schnam,
+                  highlight = highlightOptions(weight = 3,
+                                               color = "blue",
+                                               bringToFront = TRUE)) %>%
+      addPolygons(data = filter(mcd_sf), 
+                  group="Magisterial Districts",
+                  color = "purple", fill = FALSE, weight = 2,
+                  popup = ~NAMELSAD,
+                  highlight = highlightOptions(weight = 3,
+                                               color = "purple",
+                                               bringToFront = TRUE)) %>% 
+      addLayersControl(
+        overlayGroups = c("Parks", "Schools", "Elem School Zone", "Magisterial Districts"),
+        options = layersControlOptions(collapsed = FALSE), 
+        position = "bottomright"
+      ) %>% 
+      hideGroup("Parks") %>% 
+      hideGroup("Schools") %>% 
+      hideGroup("Elem School Zone") %>% 
+      hideGroup("Magisterial Districts") 
+    
+              }) 
+            }
+          }
+        })
+        
   ################
   #### BEGIN MAP 1
   ################
   
-  # reactive function to detect when variable 1, variable 2, or locality selection changes
-  listen_closely <- reactive({
-    list(input$indicator1,input$indicator2, input$geo)
-  })
-  
-  # when a variable or locality selection is changed, render the map
-  observeEvent(listen_closely(), {
-    if (input$indicator1 == input$indicator2 | length(input$geo) == 0) {
-      leafletProxy('map1') %>% clearShapes()
-    } else if (input$indicator1 %in% cant_map) {
-      session$sendCustomMessage(type = 'testmessage', message = cant_map_message)
-      leafletProxy('map1') %>% clearShapes()
-    } else if(input$tabs == "tab1"){
-      
-      # vector of values
-      
-      if (all(is.na(md()$x))){
-        showModal(modalDialog(
-          title = "Data not available",
-          "Data not available for the current Geographic Level or selected Year." ))
-      } else {
-      
-        leafletProxy("map1", data = md()) %>%
+  observe({
+    leafletProxy("basemap1") %>%
           # removeShape(layerId = 'map2layer') %>%
           clearControls() %>%
+          clearShapes() %>%
           addProviderTiles(input$map_geo) %>%
-          addPolygons(fillColor = colorNumeric("viridis", domain = md()$x)(md()$x),
+          addPolygons(data = md(), fillColor = colorNumeric("viridis", domain = md()$x)(md()$x),
                       fillOpacity = 0.5,
                       color = "white",
                       weight = 2,
@@ -328,42 +409,25 @@ server <- function(input, output, session) {
                     position = "topright",
                     opacity = 0.25,
                     title = attr(md()$x, "goodname")) 
-      }
-    }
-  })
+
   
   output$maptitle <- renderText({paste0(attr(md()$x, "goodname")) })
   output$source <- renderText({attr(md()$x, "source")})
+  
+  })
   
   
   ################
   #### BEGIN MAP 2
   ################
-  
-  # reactive function to detect when variable 1, variable 2, or locality selection changes
-  listen_closely <- reactive({
-    list(input$indicator1,input$indicator2, input$geo)
-  })
-  
-  # when a variable or locality selection is changed, render the map 
-  observeEvent(listen_closely(), {
-    if (length(input$geo) == 0) {
-      leafletProxy('map2') %>% clearShapes()
-    } else if (input$indicator2 %in% cant_map) {
-      session$sendCustomMessage(type = 'testmessage', message = cant_map_message)
-      leafletProxy('map2') %>% clearShapes()
-    } else if(input$tabs == "tab2"){
-        
-        if (all(is.na(md()$y))){
-          showModal(modalDialog(
-            title = "Data not available",
-            "Data not available for the current Geographic Level or selected Year." ))
-        } else {
-          leafletProxy("map2", data = md()) %>%
+            
+    observe({
+          leafletProxy("basemap2") %>%
             # removeShape(layerId = 'map1layer') %>%
             clearControls()%>%
+            clearShapes() %>%
             addProviderTiles(input$map_geo) %>% 
-            addPolygons(fillColor = colorNumeric("viridis", domain = md()$y)(md()$y),
+            addPolygons(data = md(), fillColor = colorNumeric("viridis", domain = md()$y)(md()$y),
                         fillOpacity = 0.5,
                         color = "white",
                         weight = 2,
@@ -377,14 +441,13 @@ server <- function(input, output, session) {
                       position = "topright",
                       opacity = 0.25,
                       title = attr(md()$y, "goodname"))
-        }
-      } 
-  })
   
   output$maptitle2 <- renderText({
     if (input$indicator2 != "None") paste0(attr(md()$y, "goodname")) })
   output$source2 <- renderText({
     if (input$indicator2 != "None") attr(md()$y, "source")})
+  
+    })
   
   
   ## output scatterplot ----
