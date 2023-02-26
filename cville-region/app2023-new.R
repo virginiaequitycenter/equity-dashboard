@@ -21,6 +21,7 @@ load("www_2023/app_data_2022.Rdata")
 
 # transform data 
 all_data <- st_transform(all_data, 4326)
+all_data$pop <- as.character(all_data$totalpopE)
 counties_geo <- st_transform(counties_geo, 4326)
 
 # no-go variables for mapping
@@ -147,14 +148,13 @@ server <- function(input, output, session) {
   observe_helpers()
   
   # get map data
-  md <- reactive({
-    all_data %>%
+    md <- reactive({ all_data %>%
         dplyr::filter(county.nice %in% input$geo &
                         GEO_LEVEL == input$geo_df) %>%
         dplyr::select(x = !!sym(input$indicator1),
                       y = !!sym(input$indicator2),
                       locality, county.nice, tract, GEOID, GEO_LEVEL,
-                      # pop = totalpopE
+                      pop
                       )
   })
   
@@ -336,7 +336,7 @@ server <- function(input, output, session) {
       plotly_empty()
     } else {
       d <- st_drop_geometry(md())
-      xhist <- plot_ly(data = d, x = ~x,
+      xhist <- plot_ly(data = d, x = ~d$x,
                        type = "histogram", nbinsx = 20,
                        alpha =.75, color = I("grey")) %>%
         layout(yaxis = list(showgrid = FALSE,
@@ -345,7 +345,7 @@ server <- function(input, output, session) {
                xaxis = list(showticklabels = FALSE,
                             fixedrange = T))
       
-      yhist <- plot_ly(data = d, y = ~y,
+      yhist <- plot_ly(data = d, y = ~d$y,
                        type = "histogram", nbinsx = 20,
                        alpha = .75, color = I("grey")) %>%
         layout(xaxis = list(showgrid = FALSE,
@@ -354,13 +354,13 @@ server <- function(input, output, session) {
                yaxis = list(showticklabels = FALSE,
                             fixedrange = T))
       
-      xyscatter <- plot_ly(data = d, x = ~x, y = ~y,
+      xyscatter <- plot_ly(data = d, x = ~d$x, y = ~d$y,
                            type = "scatter",
                            mode = 'markers', # to remove mode warning
                            fill = ~'', # to remove line.width error
-                           # size = ~pop,
+                           size = ~as.numeric(d$pop),
                            sizes = c(1, 500),
-                           color = ~county.nice,
+                           color = ~d$county.nice,
                            colors = fewpal,
                            alpha = .75,
                            text = paste0("Locality: ", d$county.nice, "<br>",
