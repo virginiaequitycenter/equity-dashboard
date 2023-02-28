@@ -332,10 +332,11 @@ server <- function(input, output, session) {
   ################
   
   output$scatterplot <- renderPlotly({
-    if (md()$x == md()$y | length(input$geo) == 0) {
-      plotly_empty()
-    } else {
+    # if (md()$x == md()$y | length(input$geo) == 0) {
+    #   plotly_empty()
+    # } else {
       d <- st_drop_geometry(md())
+      if (!input$indicator2=="None") {
       xhist <- plot_ly(data = d, x = ~d$x,
                        type = "histogram", nbinsx = 20,
                        alpha =.75, color = I("grey")) %>%
@@ -392,9 +393,10 @@ server <- function(input, output, session) {
   ################
   
   output$tercile_plot <- renderPlotly({
-    if (md()$x %in% cant_map | md()$y %in% cant_map | md()$x == md()$y | length(input$geo) == 0) {
-      plotly_empty()
-    } else {
+    # if (md()$x %in% cant_map | md()$y %in% cant_map | md()$x == md()$y | length(input$geo) == 0) {
+    #   plotly_empty()
+    # } else {
+    if (!input$indicator2=="None") {
       to_tercile <- bi_class(md(), x = x, y = y, style = "quantile", dim = 3)
       to_tercile$var1_tercile <- stri_extract(to_tercile$bi_class, regex = '^\\d{1}(?=-\\d)')
       
