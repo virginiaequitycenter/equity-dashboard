@@ -1,21 +1,18 @@
 # Published version
-# Equity Indicators
-# Last updated/deployed: 2022-02-20 mpc
+# Cville Region Equity Atlas Dashboard
+# Updated 3/7/2023
+# Last Deployed: -
 
 library(shiny)
-library(shinydashboard)
+library(bslib)
 library(shinyhelper)
-library(shinyWidgets) # for sliderTextInput()
 library(tidyverse)
 library(leaflet)
 library(plotly)
 library(sf)
 library(DT)
-library(RColorBrewer)
 
-# plotly version '4.9.2.1' causes dplyr to issue warning:
-# Warning: `arrange_()` is deprecated as of dplyr 0.7.0.
-# Please use `arrange()` instead.
+source("functions/utils.R")
 
 # Load Data ---------------------------------------------------------------
 
@@ -24,200 +21,141 @@ load("www/app_data_2022.Rdata")
 # was not deploying on shinyapps:
 # https://stackoverflow.com/questions/61286108/error-in-cpl-transformx-crs-aoi-pipeline-reverse-ogrcreatecoordinatetrans
 all_data <- st_transform(all_data, 4326)
+all_data$pop <- as.character(all_data$totalpopE)
 counties_geo <- st_transform(counties_geo, 4326)
+bbox <- st_bbox(counties_geo) %>% as.vector()
+
+fewpal <- c("#7DC462", "#0D95D0", "#E72F52", "#774FA0", "#EFB743", "#D44627")
+# fewpal <- c("#003f5c", "#444e86", "#955196", "#dd5182", "#ff6e54", "#ffa600")
+# fewpal <- c( "#265dab", "#df5c24", "#c7b42e", "#059748", "#cb2027", "#9d722a")
 
 
 # Define UI ---------------------------------------------------------------
 
-ui <- dashboardPage(
-  dashboardHeader(title = "Charlottesville Region Equity Atlas 1.0", 
-                  titleWidth = 400),
-  dashboardSidebar(collapsed = TRUE, 
-                   sidebarMenu(
-                     menuItem("Atlas", tabName = "dashboard", 
-                              icon = icon("map")),
-                     menuItem("Reports & Stories", tabName = "storywidgets", 
-                              icon = icon("chart-bar"),
-                              menuSubItem("Equity in BA Attainment", tabName = "story1"),
-                              menuSubItem("Home Sales in Albemarle", tabName = "story2"),
-                              menuSubItem("Albemarle County Equity Profile", tabName = "story3")),
-                     menuItem("Relevant Links", tabName = "linkwidget", 
-                              icon = icon("link"))
-                   )
-  ), # end header side menu
-  
-  dashboardBody(
-    tabItems(
-      tabItem(tabName = "dashboard",
-              # Row 1 panels ----
-              fluidRow(
-                
-                # Sidebar layout
-                
-                box(tags$h3("Visualizing the greater Charlottesville Region"),
-
-                    # pick counties
-                    checkboxGroupInput(
-                      inputId = "geo", 
-                      label = "Localities", 
-                      choices = counties, 
-                      selected = counties,
-                      inline = TRUE) %>% # checkboxGroupInput ends, pipe to helper()
-                      helper(type = "inline",
-                             icon = "info-circle",
-                             content = helpers$counties,
-                             size = "m"),
-                    
-                    # add select all option
-                    actionButton(inputId = "selectall_geo", 
-                                 label = "Select/Unselect All"),
-                    
-                    tags$br(),
-                    tags$br(),
-                    
-                    # pick geographic level
-                    radioButtons(inputId = "geo_df",
-                                 label = "Select a Geographic Level:", 
-                                 choices = c("County", "Census Tract", "Block Group"),
-                                 selected = "Census Tract", 
-                                 inline = TRUE) %>% # radioButtons ends, pipe to helper()
-                      helper(type = "inline",
-                             title = "Geographic Level",
-                             icon = "info-circle",
-                             content = helpers$geo,
-                             size = "m"),
-                    
-                    # pick indicator 1
-                    selectInput("indicator1",
-                                "Primary Indicator:",
-                                choices = ind_choices_county,
-                                selected = ind_choices_county$People['Estimated Population']) %>% 
-                      helper(type = "inline",
-                             icon = "info-circle",
-                             content = helpers$indicator,
-                             size = "m"),
-                    
-                    # pick indicator 2
-                    selectInput("indicator2",
-                                "Secondary Indicator:",
-                                choices = ind_choices_county,
-                                selected = ind_choices_county$Housing['Total Housing Units']) %>% 
-                      helper(type = "inline",
-                             icon = "info-circle",
-                             content = helpers$indicator2,
-                             size = "m"),
-                    
-                    # # pick year (only available for vars in year_ind)
-                    # sliderTextInput("time",
-                    #                 "Select a Year:",
-                    #                 choices = years,
-                    #                 selected = max(years),
-                    #                 grid = TRUE) %>% 
-                    #   helper(type = "inline",
-                    #          icon = "info-circle",
-                    #          content = helpers$time,
-                    #          size = "m"),
-                    
-                    # Select a base map
-                    radioButtons(inputId = "map_geo",
-                                 label = "Select a Base Map:",
-                                 choices = c("Minimal" = "CartoDB.Positron",
-                                             "Detailed" = "OpenStreetMap.Mapnik"),
-                                 inline = TRUE) %>% 
-                      helper(type = "inline",
-                             inputId = "map_geo",
-                             icon = "info-circle",
-                             content = helpers$map_geo,
-                             size = "m"),
-                    
-                    width=4), # end sidebar layout
-                
-                # Layout for map 1, map2, data table
-                tabBox(id = "tabs", 
-                       tabPanel("Map of Primary Indicator",
-                                value = "tab1",
-                                tags$p("Click on areas below to view names and indicator values."),
-#                                textOutput("maptitle"),
-                                leafletOutput("map", height=600),
-                                textOutput("source")),
-                       tabPanel("Map of Secondary Indicator",
-                                value = "tab2",
-                                tags$p("Click on areas below to view names and indicator values."),
-#                                textOutput("maptitle2"),
-                                leafletOutput("map2", height=600),
-                                textOutput("source2")),
-                       tabPanel("Data Table",
-                                textOutput("tbltitle"),
-                                # tags$div(downloadButton("downloaddf", "Download Data"), 
-                                #          style="float: right;"),
-                                tags$p("Variables ending in E are estimates;
-                               variables ending in M are margins of error."),
-                                DTOutput("tbl")),
-                       width=8)  # end map layout
-              ), # end row 1 panels
-              
-              fluidRow(
-                # Provide definitions, source information
-                box(title = "Indicator Source & Definition",
-                    strong(textOutput("ind1_name")), 
-                    textOutput("ind1_abt"), 
-                    tags$br(),
-                    strong(textOutput("ind2_name")), 
-                    textOutput("ind2_abt"),
-                    width=4),
-                
-                # Histogram, scatterplot, and aggregation by race tabs
-                tabBox(tabPanel("Distribution",
-                                textOutput("histtitle") %>% 
+ui <- htmlTemplate(filename = "cville-atlas-template.html", main = 
+      navbarPage(title = "Charlottesville Regional Equity",
+                 collapsible = TRUE,
+                 fluid = TRUE,
+                 theme = bs_theme(version = 5),
+                 tabPanel("DASHBOARD",
+                          fluidRow(
+                            column(
+                              width = 12,
+                              HTML("<h1><center>Charlottesville Regional Equity Dashboard</center></h1>")
+                            )
+                          ), br(), # end fluidRow
+                          fluidRow(
+                            column(
+                              width = 4,
+                                cardComponentSelect(
+                                selectInput("indicator1",
+                                 "Select First Equity Indicator:",
+                                 choices = ind_choices_county,
+                                 selected = ind_choices_ct$People['Estimated Population']
+                                ) %>% 
+                                helper(type = "inline",
+                                  icon = "question-circle",
+                                  content = helpers$indicator,
+                                  size = "m"),
+                                accordianComponent("ind1", "Show Selected Variable Definition", textOutput("ind1_abt", inline = TRUE),"var-def-1", "map-ind-1")
+                                )
+                            ) %>% tagAppendAttributes(class="mb-3 mb-sm-0"),
+                            column(
+                              width = 4,
+                              cardComponentSelect(
+                              selectInput("indicator2",
+                                 "Select Second Equity Indicator:",
+                                 choices = ind_choices_county,
+                                 selected = ind_choices_ct$Housing['Total Housing Units']) %>% 
+                              helper(type = "inline",
+                                  icon = "question-circle",
+                                  content = helpers$indicator2,
+                                  size = "m"),
+                              accordianComponent("ind2", "Show Selected Variable Definition", textOutput("ind2_abt", inline = TRUE),"var-def-2", "map-ind-2")
+                              )
+                            ) %>% tagAppendAttributes(class="mb-3 mb-sm-0"),
+                            column(
+                              width = 4,
+                              cardComponentSelect(
+                              checkboxGroupInput(
+                                  inputId = "geo",
+                                  label = "Localities",
+                                  choices = counties,
+                                  selected = counties,
+                                  inline = TRUE) %>%
                                   helper(type = "inline",
-                                         title = "Distribution",
-                                         icon = "question-circle",
-                                         content = helpers$distribution,
-                                         size = "m"),
-                                plotlyOutput("hist"),
-                                textOutput("source_b")), 
-                       tabPanel("Correlation",
-                                textOutput("comptitle") %>% 
+                                          icon = "question-circle",
+                                          content = helpers$counties,
+                                          size = "m"),
+                                          # add select all option - not working well
+                              # actionButton(inputId = "selectall_geo", 
+                              #             label = "Select/Unselect All"),
+                              radioButtons(inputId = "geo_df",
+                                  label = "Select Geographic Level:",
+                                  choices = c("County", "Census Tract", "Block Group"),
+                                  selected = "Census Tract",
+                                  inline = TRUE) %>%
                                   helper(type = "inline",
-                                         title = "Distribution",
-                                         icon = "question-circle",
-                                         content = helpers$correlation,
-                                         size = "m"),
-                                plotlyOutput("compare"),
-                                textOutput("source_c")), 
-                       # tabPanel("By Race", 
-                       #          textOutput("racetitle") %>% 
-                       #            helper(type = "inline",
-                       #                   title = "By Race",
-                       #                   icon = "question-circle",
-                       #                   content = helpers$race,
-                       #                   size = "m"),
-                       #          plotlyOutput("byrace")),
-                       width=8)
-              ),    # end row 2 panels
-              # Row 3 panels ----
-              fluidRow(
-                # https://stackoverflow.com/questions/30534674/displaying-true-when-shiny-files-are-split-into-different-folders/30538596#30538596
-                box(source('www/tags_about.R', local = TRUE)$value),
-                box(source('www/tags_equity.R', local = TRUE)$value),
-                box(source('www/tags_commpas.R', local = TRUE)$value)
-                
-              ) # end row 3 panels
-      ), # end second tabitem
-      
-      tabItem(tabName = "storywidgets"),
-      tabItem(tabName = "story1",
-              uiOutput("disparity")),  # created in BAed_003.Rmd
-      tabItem(tabName = "story2",
-              uiOutput("homes")),  # created in alb_homesales_school.Rmd
-      tabItem(tabName = "story3",
-              uiOutput("profile")),  # county equity profile
-tabItem(tabName = "linkwidget",
-              uiOutput("links")) # created in equity_links.Rmd)
-    ) # end first tabitems
-  ) # end dashboard body
-) # end dashboard page
-
+                                            title = "Geographic Level",
+                                            icon = "question-circle",
+                                            content = helpers$geo,
+                                            size = "m")
+                              )
+                            ) %>% tagAppendAttributes(class="mb-3 mb-sm-0")
+                          ), br(), 
+                          fluidRow(
+                            column(
+                              width = 12,
+                              tabsetPanel(
+                                id = "tabs",
+                                tabPanel(
+                                    "First Map Selection",
+                                    value = "tab1",
+                                    h2(textOutput("ind1_name", inline = TRUE)),
+                                    p("Click on areas below to view names and indicator values."),
+                                    leafletOutput("map1", height=600),
+                                    br(),
+                                    textOutput("source")
+                                  ),
+                                tabPanel("Second Map Selection", 
+                                    value = "tab2",
+                                    h2(textOutput("ind2_name", inline = TRUE)),
+                                    p("Click on areas below to view names and indicator values."),
+                                    leafletOutput("map2", height=600),
+                                    br(),
+                                    textOutput("source2")
+                                  ),
+                                tabPanel("Selection Relationship",
+                                    h2(textOutput("comptitle", inline = TRUE)) %>% 
+                                      helper(type = "inline",
+                                              title = "Distribution",
+                                              icon = "question-circle",
+                                              content = helpers$correlation,
+                                              size = "m"),
+                                    p("Each census tract in the Charlottesville region is represented with a dot, plotted by the value of the tract on the measures you select on the left (Variable 1) and the right (Variable 2). The size of each dot is based on the population of the tract so that tracts with more people appear larger and the color is based on the locality of the tract. The gray figures on the top and right show how frequently high and low values of the selected variables occur in the region; taller bars mean that range of values is more common."),
+                                    br(),
+                                    plotlyOutput("scatterplot"),
+                                    br(),
+                                    textOutput("source_c")
+                                  ),
+                                tabPanel("Data Table",
+                                  h2(textOutput("tbltitle", inline = TRUE)),
+                                  p("Variables ending in E are estimates; variables ending in M are margins of error."),
+                                  DTOutput("tbl"),
+                                  h3(textOutput("dltitle", inline = TRUE)),
+                                  downloadButton("downloadBtn", "Download")
+                                )
+                              )
+                            )
+                          ), # end fluidRow
+                          fluidRow(
+                            column(
+                              width = 12,
+                              br(), hr(), br()
+                            )
+                          ) # end fluidRow
+                 ) # end tabPanel
+)) # end navbarPage / end HTML template
 
 # Define server logic -----------------------------------------------------
 
@@ -225,235 +163,6 @@ server <- function(input, output, session) {
   
   # to make helper() info render
   observe_helpers()
-  
-  # county selections (select/deselect all)
-  observe({
-    if (input$selectall_geo == 0) return(NULL)
-    else if (input$selectall_geo %% 2 == 0){
-      updateCheckboxGroupInput(session, inputId = "geo", "Counties",
-                               choices = counties, selected = counties,
-                               inline = TRUE)
-    } else { 
-      updateCheckboxGroupInput(session, "geo", "Counties",
-                               choices = counties, inline = TRUE)
-    }
-  })
-  
-  # geography selections - update selection of indicators based on geo level
-  observeEvent(input$geo_df, {
-    if (input$geo_df == "Block Group"){
-      updateSelectInput(session, "indicator1", choices = ind_choices_bg, 
-                        selected = ind_choices_bg$People['Estimated Population']
-      )
-      updateSelectInput(session, "indicator2", choices = ind_choices_bg,
-                        selected = ind_choices_bg$Housing['Total Housing Units']
-      )
-    } else if (input$geo_df == "Census Tract"){
-      updateSelectInput(session, "indicator1", choices = ind_choices_ct,
-                        selected = ind_choices_ct$People['Estimated Population']
-      )
-      updateSelectInput(session, "indicator2", choices = ind_choices_ct,
-                        selected = ind_choices_ct$Housing['Total Housing Units']
-      )
-    } else {
-      updateSelectInput(session, "indicator1", choices = ind_choices_county,
-                        selected = ind_choices_county$People['Estimated Population']
-      )
-      updateSelectInput(session, "indicator2", choices = ind_choices_county,
-                        selected = ind_choices_county$Housing['Total Housing Units']
-      )
-    }
-  })
-  
-  # get map data
-  md <- reactive({
-    all_data %>% filter(county.nice %in% input$geo &
-                          GEO_LEVEL == input$geo_df &
-                          year == "2020") 
-  })
-  
-  
-  ################
-  #### BASE MAP
-  ################
-  
-  output$map <- output$map2 <- renderLeaflet({
-    
-    # filter for "Parks", "Schools", "Elem School Zone", "Magisterial Districts"
-    f <- md()[["COUNTYFP"]]
-    
-    counties_geo %>%
-      #sf::st_transform(4326) %>%
-      leaflet() %>%
-      addProviderTiles(input$map_geo) %>%
-      addPolygons(color = "grey",
-                  fill = FALSE,
-                  weight = 3) %>% 
-      # addPolygons(data =  filter(parks_sf, COUNTYFP %in% f), # changed FIPS to COUNTYFP
-      #             group="Parks", 
-      #             popup = ~NAME) %>% 
-      addCircles(data =  filter(schools_sf, county %in% f),
-                 group="Schools",
-                 popup = ~NAME) %>%
-      addPolygons(data = filter(sabselem_sf, county.x %in% f), # changed county to county.x (fix in data_combine)
-                  group="Elem School Zone",
-                  color = "blue", fill = FALSE, weight = 2,
-                  popup = ~schnam,
-                  highlight = highlightOptions(weight = 3,
-                                               color = "blue",
-                                               bringToFront = TRUE)) %>%
-      addPolygons(data = filter(mcd_sf, COUNTYFP %in% f), 
-                  group="Magisterial Districts",
-                  color = "purple", fill = FALSE, weight = 2,
-                  popup = ~NAMELSAD,
-                  highlight = highlightOptions(weight = 3,
-                                               color = "purple",
-                                               bringToFront = TRUE)) %>% 
-      addLayersControl(
-        overlayGroups = c("Parks", "Schools", "Elem School Zone", "Magisterial Districts"),
-        options = layersControlOptions(collapsed = FALSE), 
-        position = "bottomright"
-      ) %>% 
-      hideGroup("Parks") %>% 
-      hideGroup("Schools") %>% 
-      hideGroup("Elem School Zone") %>% 
-      hideGroup("Magisterial Districts") 
-    
-    
-  })
-  
-  ################
-  #### BEGIN MAP 1
-  ################
-  
-  observe({
-    if(input$tabs == "tab1"){
-      
-      # vector of values
-      ind1 <- md() %>% 
-        filter(!is.na(.data[[input$indicator1]])) %>% 
-        pull(input$indicator1)
-      
-      if (all(is.na(ind1))){
-        showModal(modalDialog(
-          title = "Data not available",
-          "Data not available for the current Geographic Level or selected Year." ))
-      } else {
-        leafletProxy("map", data = md()
-                     # data = sf::st_transform(md(), 4326)
-                     ) %>%
-          clearControls() %>%
-          addProviderTiles(input$map_geo) %>%
-          addPolygons(fillColor = colorNumeric(mycolors, domain = ind1)(ind1),
-                      fillOpacity = 0.5,
-                      color = "#969997",
-                      weight = 2,
-                      smoothFactor = 0.2,
-                      popup = paste0(attr(ind1, "goodname"), ": ",
-                                     ind1, "<br>",
-                                     md()[["NAME"]], "<br>")) %>%
-          addLegend(pal = colorNumeric(mycolors, domain = ind1),
-                    values = ind1,
-                    position = "topright",
-                    opacity = 0.25,
-                    title = attr(ind1, "goodname"))
-      }
-    }
-  })
-  
-  output$maptitle <- renderText({paste0(attr(md()[[input$indicator1]], "goodname"),
-                                        ", ", input$time) })
-  output$source <- renderText({attr(md()[[input$indicator1]], "source")})
-  
-  
-  ################
-  #### BEGIN MAP 2
-  ################
-  
-  observe({
-    
-    if (input$tabs == "tab2"){
-      
-      # redraw a basic map if None selected again
-      if (input$indicator2 == "None"){
-        leafletProxy("map2", data = md()
-                     # data = sf::st_transform(md(), 4326)
-                     ) %>%
-          clearControls() %>% 
-          clearShapes() %>%
-          addPolygons(color = "grey",
-                      fill = FALSE,
-                      weight = 3)
-        
-      } else {  
-        
-        # vector of values
-        ind2 <- md() %>% 
-          filter(!is.na(.data[[input$indicator2]])) %>% 
-          pull(input$indicator2)
-        
-        if (all(is.na(ind2))){
-          showModal(modalDialog(
-            title = "Data not available",
-            "Data not available for the current Geographic Level or selected Year." ))
-        } else {
-          leafletProxy("map2", data = md()
-                       # data = sf::st_transform(md(), 4326)
-                       ) %>%
-            clearControls() %>% 
-            addProviderTiles(input$map_geo) %>% 
-            addPolygons(fillColor = colorNumeric(mycolors, domain = ind2)(ind2),
-                        fillOpacity = 0.5,
-                        color = "#969997",
-                        weight = 2,
-                        smoothFactor = 0.2,
-                        popup = paste0(attr(ind2, "goodname"), ": ",
-                                       ind2, "<br>",
-                                       md()[["NAME"]], "<br>")) %>%
-            addLegend(pal = colorNumeric(mycolors, domain = ind2),
-                      values = ind2,
-                      position = "topright",
-                      opacity = 0.25,
-                      title = attr(ind2, "goodname"))
-        }
-      } 
-    }
-  })
-  
-  output$maptitle2 <- renderText({
-    if (input$indicator2 != "None") paste0(attr(md()[[input$indicator2]], "goodname"),
-                                           ", ", input$time) })
-  output$source2 <- renderText({
-    if (input$indicator2 != "None") attr(md()[[input$indicator2]], "source")})
-  
-  
-  ########################
-  #### BEGIN DATA DOWNLOAD
-  ########################
-  
-  # output data table ----
-  output$tbl <-  renderDT({
-    datatable(st_drop_geometry(md()),
-              options = list(scrollX = TRUE))
-  })
-  
-  # data table title
-  output$tbltitle <- renderText({
-    paste("Data by", input$geo_df)
-  })
-  
-  # # download csv of data
-  # output$downloaddf <- downloadHandler(
-  #   filename = function() {
-  #     paste0("cville-region-", input$geo_df, ".csv")
-  #   },
-  #   content = function(file) {
-  #     write.csv(md(), file, row.names = FALSE)
-  #   })
-  
-  ###############################
-  # BEGIN Source & Definition box
-  ###############################
   
   # output indicator 1 name, for Source & Definition box
   output$ind1_name <- renderText({
@@ -477,62 +186,204 @@ server <- function(input, output, session) {
     attr(md()[[input$indicator2]], "about") 
   })
   
-  
-  ###############################
-  # BEGIN Histogram(s)
-  ###############################
-  
-  output$histtitle <- renderText({
-    if (input$indicator2=="None") {
-      paste("Histogram of", attr(md()[[input$indicator1]], "goodname"), "by", input$df_geo)
-    } else {
-      paste("Histograms of", attr(md()[[input$indicator1]], "goodname"), " and ",
-            attr(md()[[input$indicator2]], "goodname"), "by Census Tract")
-    }
+  # get map data
+  md <- reactive({
+    all_data %>% filter(county.nice %in% input$geo &
+                          GEO_LEVEL == input$geo_df &
+                          year == "2021") 
   })
   
-  output$hist <- renderPlotly({ 
-    d <- st_drop_geometry(md())
-    if (!input$indicator2=="None") {
-      p1 <- plot_ly(data = d,  
-                    x = ~get(input$indicator1),
-                    type="histogram", 
-                    marker = list(color = '#2c7fb8')) %>%
-        layout(xaxis=list(title=attr(d[[input$indicator1]], "goodname")))
-      p2 <- plot_ly(data = d,  
-                    x = ~get(input$indicator2),
-                    type="histogram", 
-                    marker = list(color = '#41b6c4')) %>%
-        layout(xaxis=list(title=attr(d[[input$indicator2]], "goodname")))
-      
-      subplot(p1, p2, titleX = T, titleY = T) %>%
-        layout(showlegend = FALSE)
-    } else {
-      plot_ly(data = d,  
-              x = ~get(input$indicator1),
-              type="histogram", marker = list(color = '#253494')) %>%
-        layout(xaxis=list(title=attr(d[[input$indicator1]], "goodname")))
-    }
+  listen_indicator1 <- reactive({
+    list(input$indicator1, input$geo, input$geo_df)
   })
+
+  listen_indicator2 <- reactive({
+    list(input$indicator2, input$geo, input$geo_df)
+  })
+
+  # county selections (select/deselect all) --- not working well
+  # observe({
+  #   if (input$selectall_geo == 0){
+  #     return(NULL)
+  #   } 
+  #   else if (input$selectall_geo %% 2 == 0){
+  #     updateCheckboxGroupInput(session, inputId = "geo", "Counties",
+  #                              choices = counties, selected = counties,
+  #                              inline = TRUE)
+  #   } else {
+  #     updateCheckboxGroupInput(session, "geo", "Counties",
+  #                              choices = counties, inline = TRUE)
+  #   }
+  # })
+
+# Map Functions -------------------------------------------------------
   
-  # histogram caption: source 1 or source 1 & 2 
-  output$source_b <- renderText({
-    if (input$indicator2=="None") {
-      attr(md()[[input$indicator1]], "source")
-    } else {
-      paste0(
-        attr(md()[[input$indicator1]], "goodname"), ": ", 
-        attr(md()[[input$indicator1]], "source"), " ",
-        attr(md()[[input$indicator2]], "goodname"), ": ", 
-        attr(md()[[input$indicator2]], "source")
+  ## Parks/Schools/District Map Components Function ---- 
+  mapGroupFunction <- function(map, mapData){
+        addPolygons(map, data = mapData, color = "#969997",
+                    fill = FALSE,
+                    weight = 2) %>%
+        addCircles(data = st_collection_extract(parks_sf, "POINT"), color = "green",
+                    group="Parks",
+                    popup = ~ParkName) %>% 
+        addPolygons(data = st_collection_extract(parks_sf, "POLYGON"), color = "green",
+                    group="Parks",
+                    popup = ~ParkName) %>%
+        addCircles(data =  filter(schools_sf),
+                    group="Schools",
+                    popup = ~NAME) %>%
+        addPolygons(data = filter(sabselem_sf), 
+                    group="Elem School Zone",
+                    color = "blue", fill = FALSE, weight = 2,
+                    popup = ~schnam,
+                    highlight = highlightOptions(weight = 3,
+                                                  color = "blue",
+                                                  bringToFront = TRUE)) %>%
+        addPolygons(data = filter(mcd_sf), 
+                    group="Magisterial Districts",
+                    color = "purple", fill = FALSE, weight = 2,
+                    popup = ~NAMELSAD,
+                    highlight = highlightOptions(weight = 3,
+                                                  color = "purple",
+                                                  bringToFront = TRUE)) %>% 
+        addLayersControl(overlayGroups = c("Parks", "Schools", "Elem School Zone", "Magisterial Districts"),
+                          options = layersControlOptions(collapsed = FALSE), 
+                          position = "bottomright") %>% 
+        hideGroup("Parks") %>% 
+        hideGroup("Schools") %>% 
+        hideGroup("Elem School Zone") %>% 
+        hideGroup("Magisterial Districts") 
+  }
+
+  ## leafletProxy Map Function ---- 
+  mapFunction <- function(mapData, mapId, fillColor, ind, popupText){
+    # map proxy
+    proxy <- leafletProxy(mapId, data = mapData)
+
+    # observe
+    observe({
+      proxy %>%
+        clearShapes() %>%
+        mapGroupFunction(mapData) %>%
+        addPolygons(data = mapData, fillColor = fillColor,
+                      fillOpacity = 0.5,
+                      color = "#969997",
+                      weight = 2,
+                      smoothFactor = 0.2,
+                      popup = paste0(attr(ind, "goodname"), ": ",
+                                     popupText, "<br>",
+                                     mapData[["NAME"]], "<br>",
+                                     "Tract Name: ", mapData[["tractnames"]]),
+                      highlight = highlightOptions(
+                        weight = 5,
+                        fillOpacity = 0.7,
+                        bringToFront = F)) %>% 
+        clearControls() %>%
+        addLegend(pal = colorNumeric(mycolors, domain = ind),
+                    values = ind,
+                    position = "topright",
+                    opacity = 0.25,
+                    title = attr(ind, "goodname")) 
+    })
+  }
+  
+  ## Add Map Reset button function ----
+  addResetMapButton <- function(leaf) {
+    leaf %>%
+      addEasyButton(
+        easyButton(
+          icon = "ion-arrow-shrink", 
+          title = "Reset View", 
+          onClick = JS(
+            "function(btn, map){ map.setView(map._initialCenter, map._initialZoom); }"
+          )
+        )
+      ) %>% 
+      htmlwidgets::onRender(
+        JS(
+          "function(el, x){ 
+            var map = this; 
+            map.whenReady(function(){
+              map._initialCenter = map.getCenter(); 
+              map._initialZoom = map.getZoom();
+            });
+          }"
+        )
       )
+  }
+
+  ## Leaflet base map function ----
+  renderLeafletFunction <- function(map) {
+    renderLeaflet({
+      counties_geo %>%
+        leaflet() %>%
+        addProviderTiles(providers$CartoDB.Positron) %>%
+        fitBounds(bbox[1], bbox[2], bbox[3], bbox[4]) %>%
+        addPolygons(color = "#969997",
+                    fill = FALSE,
+                    weight = 2,
+                    group = 'baseCounties') %>% 
+        addResetMapButton()
+    }) 
+  }
+
+# Build Map 1 -------------------------------------------------------
+  
+  output$map1 <- renderLeafletFunction()
+
+  observeEvent(listen_indicator1(), {
+    ind1 <- md() %>% 
+      filter(!is.na(.data[[input$indicator1]])) %>% 
+      pull(input$indicator1)
+
+    if (all(is.na(md()[[input$indicator1]]))){
+      showModal(
+        modalDialog(
+          title = "Data not available",
+          "Data not available for the current Geographic Level"
+        ))
+        mapFunction(md(), "map1", "#969997", ind1, "<b>Data not available for the current Geographic Level</b>")
+    } else {
+      mapFunction(md(), "map1", colorNumeric(mycolors, domain = ind1)(ind1), ind1, ind1)
+     
+    }
+  })
+
+  output$maptitle <- renderText({paste0(attr(md()[[input$indicator1]], "goodname"))})
+  output$source <- renderText({attr(md()[[input$indicator1]], "source")})
+
+ 
+# Build Map 2 -------------------------------------------------------
+ 
+  output$map2 <- renderLeafletFunction()
+
+  outputOptions(output, "map2", suspendWhenHidden = FALSE)
+  
+  observeEvent(listen_indicator2(), {
+    ind2 <- md() %>%
+      filter(!is.na(.data[[input$indicator2]])) %>%
+      pull(input$indicator2)
+
+    if (all(is.na(md()[[input$indicator2]]))){
+      showModal(
+        modalDialog(
+          title = "Data not available",
+          "Data not available for the current Geographic Level"
+        ))
+        mapFunction(md(), "map2", "#969997", ind2, "<b>Data not available for the current Geographic Level</b>")
+
+    } else {
+      mapFunction(md(), "map2", colorNumeric(mycolors, domain = ind2)(ind2), ind2, ind2)
+
     }
   })
   
+  output$maptitle2 <- renderText({
+    if (input$indicator2 != "None") paste0(attr(md()[[input$indicator2]], "goodname")) })
+  output$source2 <- renderText({
+    if (input$indicator2 != "None") attr(md()[[input$indicator2]], "source")})
   
-  ###############################
-  # BEGIN Scatterplot
-  ###############################  
+# Build Scatterplot -------------------------------------------------------
   
   output$comptitle <- renderText({
     if (input$indicator2=="None") {
@@ -542,28 +393,61 @@ server <- function(input, output, session) {
             attr(md()[[input$indicator2]], "goodname"))
     }
   })
-  
-  output$compare <- renderPlotly({ # add loess line to this?
-    d <- st_drop_geometry(md())
-    if (!input$indicator2=="None") {
-      plot_ly(data=d,  
-              x = ~get(input$indicator1),
-              y=  ~get(input$indicator2),
-              color = ~county.nice,
-              type = "scatter", 
-              mode = "markers", 
-              # Set3 has 12 values, which matches the 12 cities/counties
-              colors = "Set3", 
-              text = paste0(d$county.nice, "<br>",
-                            attr(d[[input$indicator1]], "goodname"), ": ", 
-                            d[[input$indicator1]], "<br>",
-                            attr(d[[input$indicator2]], "goodname"), ": ", 
-                            d[[input$indicator2]]
-              ), 
-              hoverinfo='text') %>% 
-        layout(xaxis=list(title=attr(d[[input$indicator1]], "goodname")),
-               yaxis=list(title=attr(d[[input$indicator2]], "goodname")))
-    }
+
+   output$scatterplot <- renderPlotly({
+      d <- st_drop_geometry(md())
+      # if (!input$indicator2=="None") {
+      xhist <- plot_ly(data = d, 
+                       x = ~get(input$indicator1),
+                       type = "histogram", nbinsx = 20,
+                       alpha =.75, color = I("grey")) %>%
+        layout(yaxis = list(showgrid = FALSE,
+                            showticklabels = FALSE,
+                            fixedrange = T),
+               xaxis = list(showticklabels = FALSE,
+                            fixedrange = T))
+      
+      yhist <- plot_ly(data = d, 
+                       y = ~get(input$indicator2),
+                       type = "histogram", nbinsx = 20,
+                       alpha = .75, color = I("grey")) %>%
+        layout(xaxis = list(showgrid = FALSE,
+                            showticklabels = TRUE,
+                            fixedrange = T),
+               yaxis = list(showticklabels = FALSE,
+                            fixedrange = T))
+      
+      xyscatter <- plot_ly(data=d,  
+                          x = ~get(input$indicator1),
+                          y=  ~get(input$indicator2),
+                           type = "scatter",
+                           mode = "markers",
+                           fill = ~"", # to remove line.width error
+                           size = ~as.numeric(d$pop),
+                           sizes = c(1, 500),
+                           color = ~d$county.nice,
+                           colors = fewpal,
+                           alpha = .75,
+                           text = paste0("Locality: ", d$county.nice, "<br>",
+                                         "Census tract: ", d$tract, "<br>",
+                                         "Tract Name: ", d$tractnames, "<br>",
+                                         "Population: ", d$pop, "<br>",
+                                         attr(d[[input$indicator1]], "goodname"), ": ", round(as.numeric(d[[input$indicator1]]), 2), "<br>",
+                                         attr(d[[input$indicator2]], "goodname"), ": ", round(as.numeric(d[[input$indicator2]]), 2), "<br>"),
+                           hoverinfo = "text") %>%
+        layout(xaxis = list(title = attr(d[[input$indicator1]], "goodname"), showticklabels = TRUE, fixedrange = T),
+               yaxis = list(title = attr(d[[input$indicator2]], "goodname"), showticklabels = TRUE, fixedrange = T),
+               legend = list(orientation = "h", x = 0.1, y = 1.2))
+      
+      # note: in the legend, we hide trace 1 (the xhist) and trace (3 + length(input$locality)), which is the yhist;
+      #       the yhist's trace # changes as a user selects different localities to map, but it can be dynamically
+      #       referenced as... yhist trace number = 1 (xhist) + 1 (plotly_empty) + n_localities + 1 (to reach the yhist)
+      subplot(xhist, plotly_empty(), xyscatter, yhist,
+              nrows = 2, heights = c(.2, .8), widths = c(.8,.2), margin = 0,
+              shareX = TRUE, shareY = TRUE) %>%
+        style(showlegend = FALSE, traces = c(1, sum(3 + length(input$geo)))) %>%
+        layout(xaxis = list(showgrid = TRUE),
+               yaxis2 = list(showgrid = TRUE))
   })
   
   # scatterplot source caption, if present
@@ -580,51 +464,33 @@ server <- function(input, output, session) {
     }
   })
   
+# Build Data Table -------------------------------------------------------
   
-  ###############################
-  # BEGIN By Race plot
-  ###############################  
+  ## output data table ----
+  output$tbl <-  renderDT({
+    datatable(st_drop_geometry(md()),
+              options = list(scrollX = TRUE))
+  })
   
-  # # by race title, if present
-  # output$racetitle <- renderText({
-  #   if (!input$indicator1 %in% race_vars) {
-  #     paste("Breakouts by race are not yet available for the primary indicator you selected.")
-  #   } else {
-  #     paste(attr(md()[[input$indicator1]], "goodname"), "by Race by Locality")}
-  # })
+  ## data table title ----
+  output$tbltitle <- renderText({
+    paste("Data by", input$geo_df)
+  })
   
-  # # output by race visual ----
-  # # part of the patched together aggregation by race
-  # output$byrace <- renderPlotly({
-  #   if (input$indicator1 %in% race_vars) {
-  #     ggplotly(
-  #       ggplot(subset(race_comp, NAME %in% input$geo & var == input$indicator1),
-  #              aes(x=race, y=value, fill=race)) + 
-  #         stat_summary(fun="sum", geom="bar", 
-  #                      aes(text = paste(NAME,"<br>", race, 
-  #                                       input$indicator,
-  #                                       prettyNum(value, big.mark=",",scientific=F)))) + 
-  #         scale_fill_manual(values=brewer.pal(6, "YlGnBu")[2:6]) +
-  #         facet_wrap(~NAME, scales="free_y") +
-  #         labs(x="", y="") +
-  #         theme(axis.text.x = element_text(angle=45, hjust=1, vjust=0)),
-  #       tooltip="text") %>%
-  #       layout(showlegend = FALSE)
-  #   }
-  # })
+  ## data download button function ----
+  output$downloadBtn <- downloadHandler(
+    filename = paste0("data_download.csv"),
+    content = function(file) {
+      write.csv(st_drop_geometry(md()), file)
+    }
+  )
+
+  ## data download title ----
+  output$dltitle <- renderText({
+    paste0("Download Table Data (Current Geographic Level: ", input$geo_df, ")")
+  })
   
-  
-  ###############################
-  # BEGIN sidebar stories
-  ###############################  
-  
-  output$tabs <- renderText("Story Examples")
-  output$disparity <- renderUI(includeHTML("BAed_003b.html"))
-  output$homes <- renderUI(includeHTML("alb_homesales_schoolb.html"))
-  output$profile <- renderUI(includeHTML("web_profileb.html"))
-  output$links <- renderUI(includeHTML("equity_links.html"))
 }
 
-# Run the application 
+# Run the application -----------------------------------------------------
 shinyApp(ui = ui, server = server)
-

@@ -8,12 +8,12 @@ datatrends/
 *.RDS
 *.geojson
 *.RData
+data.zip
 
 # ignore project files
 .DS_Store
 .Rhistory
 .Rproj.user/
-equity_profile.Rproj
 
 # ignore shinyapps connection
 cville-region/rsconnect/*
