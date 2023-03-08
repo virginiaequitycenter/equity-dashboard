@@ -23,7 +23,7 @@ library(leaflet)
 # ....................................................
 # 2. Download data ----
 # define bounding box via county shape files
-ccode <- read_csv("data/county_codes.csv")
+ccode <- read_csv("datacode/county_codes.csv")
 ccode <- ccode[1:6,]
 region <- ccode$code # list of desired counties
 
@@ -57,7 +57,7 @@ parks3_bounds <- st_intersection(st_make_valid(parks3), cville_bounds)
 # for now, I filter based on the column names of the data frame with the 
 # fewest columns 
 parkvar1 <- intersect(names(parks1_bounds), names(parks2_bounds))
-parkvar2 <- names(parks3_bounds)[colnames(parks3_bounds) %in% parkvars]
+parkvar2 <- names(parks3_bounds)[colnames(parks3_bounds) %in% parkvar1]
 parkvars <- intersect(parkvar1, parkvar2)
 
 parks1_bounds <- parks1_bounds[,colnames(parks1_bounds) %in% parkvars]
