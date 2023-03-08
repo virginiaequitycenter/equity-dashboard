@@ -1,6 +1,6 @@
 # Published version
 # Cville Region Equity Atlas Dashboard
-# Updated 3/7/2023
+# Updated 3/8/2023
 # Last Deployed: -
 
 library(shiny)
@@ -16,7 +16,7 @@ source("functions/utils.R")
 
 # Load Data ---------------------------------------------------------------
 
-load("www/app_data_2022.Rdata")
+load("www/app_data.Rdata")
 
 # was not deploying on shinyapps:
 # https://stackoverflow.com/questions/61286108/error-in-cpl-transformx-crs-aoi-pipeline-reverse-ogrcreatecoordinatetrans
@@ -24,6 +24,7 @@ all_data <- st_transform(all_data, 4326)
 all_data$pop <- as.character(all_data$totalpopE)
 counties_geo <- st_transform(counties_geo, 4326)
 bbox <- st_bbox(counties_geo) %>% as.vector()
+cville_geo <- counties_geo %>% filter(NAME == "Charlottesville")
 
 fewpal <- c("#7DC462", "#0D95D0", "#E72F52", "#774FA0", "#EFB743", "#D44627")
 # fewpal <- c("#003f5c", "#444e86", "#955196", "#dd5182", "#ff6e54", "#ffa600")
@@ -41,7 +42,9 @@ ui <- htmlTemplate(filename = "cville-atlas-template.html", main =
                           fluidRow(
                             column(
                               width = 12,
-                              HTML("<h1><center>Charlottesville Regional Equity Dashboard</center></h1>")
+                              cardComponent(
+                                accordianComponent("intro", "Dashboard Instructions", "Instruction Text here", "intro-1", "intro-2")
+                              )
                             )
                           ), br(), # end fluidRow
                           fluidRow(
@@ -51,7 +54,7 @@ ui <- htmlTemplate(filename = "cville-atlas-template.html", main =
                                 selectInput("indicator1",
                                  "Select First Equity Indicator:",
                                  choices = ind_choices_county,
-                                 selected = ind_choices_ct$People['Estimated Population']
+                                 selected = ind_choices_county$People['Estimated Population']
                                 ) %>% 
                                 helper(type = "inline",
                                   icon = "question-circle",
@@ -66,7 +69,7 @@ ui <- htmlTemplate(filename = "cville-atlas-template.html", main =
                               selectInput("indicator2",
                                  "Select Second Equity Indicator:",
                                  choices = ind_choices_county,
-                                 selected = ind_choices_ct$Housing['Total Housing Units']) %>% 
+                                 selected = ind_choices_county$Housing['Total Housing Units']) %>% 
                               helper(type = "inline",
                                   icon = "question-circle",
                                   content = helpers$indicator2,
@@ -255,6 +258,26 @@ server <- function(input, output, session) {
         hideGroup("Magisterial Districts") 
   }
 
+  ## Leaflet base map function ----
+  renderLeafletFunction <- function(map) {
+    renderLeaflet({
+      counties_geo %>%
+        leaflet() %>%
+        addProviderTiles(providers$CartoDB.Positron) %>%
+        fitBounds(bbox[1], bbox[2], bbox[3], bbox[4]) %>%
+        addPolygons(color = "#969997",
+                    fill = FALSE,
+                    weight = 2,
+                    group = 'countyBoundaries') %>% 
+        addPolygons(data = cville_geo, color = FALSE,
+                    fill = FALSE,
+                    weight = 2,
+                    group = 'cvilleBoundaries') %>%
+        addResetMapButton() %>% 
+        addCvilleMapButton()
+    }) 
+  }
+  
   ## leafletProxy Map Function ---- 
   mapFunction <- function(mapData, mapId, fillColor, ind, popupText){
     # map proxy
@@ -264,6 +287,14 @@ server <- function(input, output, session) {
     observe({
       proxy %>%
         clearShapes() %>%
+        addPolygons(data = counties_geo, color = "#969997",
+                    fill = FALSE,
+                    weight = 2,
+                    group = 'countyBoundaries') %>% 
+        addPolygons(data = cville_geo, color = FALSE,
+                    fill = FALSE,
+                    weight = 2,
+                    group = 'cvilleBoundaries') %>% 
         mapGroupFunction(mapData) %>%
         addPolygons(data = mapData, fillColor = fillColor,
                       fillOpacity = 0.5,
@@ -283,7 +314,7 @@ server <- function(input, output, session) {
                     values = ind,
                     position = "topright",
                     opacity = 0.25,
-                    title = attr(ind, "goodname")) 
+                    title = attr(ind, "goodname"))
     })
   }
   
@@ -292,11 +323,9 @@ server <- function(input, output, session) {
     leaf %>%
       addEasyButton(
         easyButton(
-          icon = "ion-arrow-shrink", 
+          icon = "ion-arrow-expand",
           title = "Reset View", 
-          onClick = JS(
-            "function(btn, map){ map.setView(map._initialCenter, map._initialZoom); }"
-          )
+          onClick = JS("function(btn, map){ map.setView(map._initialCenter, map._initialZoom); }")
         )
       ) %>% 
       htmlwidgets::onRender(
@@ -311,20 +340,18 @@ server <- function(input, output, session) {
         )
       )
   }
-
-  ## Leaflet base map function ----
-  renderLeafletFunction <- function(map) {
-    renderLeaflet({
-      counties_geo %>%
-        leaflet() %>%
-        addProviderTiles(providers$CartoDB.Positron) %>%
-        fitBounds(bbox[1], bbox[2], bbox[3], bbox[4]) %>%
-        addPolygons(color = "#969997",
-                    fill = FALSE,
-                    weight = 2,
-                    group = 'baseCounties') %>% 
-        addResetMapButton()
-    }) 
+  
+  ## Add zoom to Cville button function ----
+  addCvilleMapButton <- function(leaf) {
+    leaf %>%
+      addEasyButton(
+        easyButton(id = "buttonid",
+                   icon = "fa-crosshairs", title = "Zoom to Charlottesville",
+                   onClick = JS("function(btn, map) { 
+                                var groupLayer = map.layerManager.getLayerGroup('cvilleBoundaries');
+                                map.fitBounds(groupLayer.getBounds()); 
+                                }")
+        ))
   }
 
 # Build Map 1 -------------------------------------------------------
