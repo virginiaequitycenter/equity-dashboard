@@ -43,10 +43,11 @@ download.file(url = "https://nces.ed.gov/programs/edge/data/EDGE_GEOCODE_PUBLICS
 unzip(zipfile = "data/tempdata/public_schools.zip", exdir = "data/tempdata/public_schools")
 
 pubschools_sf = st_read(dsn = "data/tempdata/public_schools/EDGE_GEOCODE_PUBLICSCH_2122/Shapefiles_SCH/EDGE_GEOCODE_PUBLICSCH_2122.shp")
-# geometry type:  POINT
-# dimension:      XY
-# epsg (SRID):    4269
-# proj4string:    +proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs
+# Simple feature collection with 102130 features and 25 fields
+# Geometry type: POINT
+# Dimension:     XY
+# Bounding box:  xmin: -176.6403 ymin: -14.34892 xmax: 145.7844 ymax: 71.30034
+# Geodetic CRS:  NAD83
 
 # private schools -- updated private schools as of 07/20 are from 2019-2020 school year (no 2021/22 data available)
 download.file(url = "https://nces.ed.gov/programs/edge/data/EDGE_GEOCODE_PRIVATESCH_1920.zip",
@@ -54,10 +55,11 @@ download.file(url = "https://nces.ed.gov/programs/edge/data/EDGE_GEOCODE_PRIVATE
 unzip(zipfile = "data/tempdata/private_schools.zip", exdir = "data/tempdata/private_schools")
 
 privschools_sf = st_read(dsn = "data/tempdata/private_schools/EDGE_GEOCODE_PRIVATESCH_1920.shp")
-# geometry type:  POINT
-# dimension:      XY
-# epsg (SRID):    4269
-# proj4string:    +proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs
+# Simple feature collection with 21572 features and 23 fields
+# Geometry type: POINT
+# Dimension:     XY
+# Bounding box:  xmin: -159.713 ymin: 19.49081 xmax: -67.83857 ymax: 64.87414
+# Geodetic CRS:  WGS 84
 
 
 # As of 07/20/22, the school boundaries are still from 2015-2016
@@ -68,11 +70,11 @@ download.file(url, destfile="data/tempdata/SABS_1516.zip", method="libcurl")
 unzip("data/tempdata/SABS_1516.zip", exdir = "data/tempdata/sabs_1516")
 
 sabs_sf <- st_read("data/tempdata/sabs_1516/SABS_1516/SABS_1516.shp")
-# geometry type:  MULTIPOLYGON
-# dimension:      XY
-# epsg (SRID):    3857
-# proj4string:    +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs
-
+# Simple feature collection with 75128 features and 13 fields
+# Geometry type: MULTIPOLYGON
+# Dimension:     XY
+# Bounding box:  xmin: -19951910 ymin: 2139103 xmax: 20021890 ymax: 11554790
+# Projected CRS: WGS 84 / Pseudo-Mercator
 
 # ....................................................
 # 3. Reduce data, add county FIPS ----

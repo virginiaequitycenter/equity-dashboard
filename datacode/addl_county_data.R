@@ -25,7 +25,7 @@ library(tidycensus)
 library(sf)
 library(readxl)
 
-ccode <- read_csv("data/county_codes.csv")
+ccode <- read_csv("datacode/county_codes.csv")
 ccode <- ccode[1:6,]
 region <- ccode$code # list of desired counties
 

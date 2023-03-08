@@ -22,7 +22,7 @@
 library(tidyverse)
 library(tidycensus)
 
-ccode <- read_csv("data/county_codes.csv")
+ccode <- read_csv("datacode/county_codes.csv")
 ccode <- ccode[1:6,] # just brhd/tjpd
 region <-ccode$code # list of desired counties
 

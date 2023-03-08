@@ -2,7 +2,8 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Combine data for shiny app
-# Last updated: 01/11/2023
+# Last updated: 03/08/2023
+  # updated pretty table source sheet: https://docs.google.com/spreadsheets/d/1Fi1sHsWcYOYKL7lzgySxzlz0WqGxGwMGGoYKiYAZtTs/edit?usp=sharing
 ####################################################
 # 1. Load libraries 
 # 2. Load data
@@ -13,7 +14,6 @@
 # 7. Define color palettes
 # 8. Save for app
 ####################################################
-
 
 # ....................................................
 # 1. Load libraries and data ----
@@ -75,12 +75,14 @@ tractnames <- googlesheets4::read_sheet(tractname_sheet, sheet = "Sheet1")
 tractnames <- tractnames %>%
   rename(count = locality)
 tractnames$GEOID <- as.character(tractnames$GEOID)
+# tractnames <- tractnames %>% 
+#   mutate(tract = substr(GEOID,6,11))
 # we only have tract names for the six-locality planning district;
 # for other surrounding counties we can leave blank, try to derive names, or choose to remove them
 
 # variable metadata/attributes
-# pretty table contains better variable lables, sources, and descriptions
-url_sheet <- "https://docs.google.com/spreadsheets/d/1hwR-U4ykkT4s-ZGaBXhBOaCt78ull4DT2kH51d-7Phg/edit?usp=sharing"
+# pretty table contains better variable labels, sources, and descriptions
+url_sheet <- "https://docs.google.com/spreadsheets/d/1Fi1sHsWcYOYKL7lzgySxzlz0WqGxGwMGGoYKiYAZtTs/edit?usp=sharing"
 pretty <- googlesheets4::read_sheet(url_sheet, sheet = "acs_tract")
 pretty$goodname <- toTitleCase(pretty$description)
 
@@ -102,8 +104,18 @@ tract_data <- tract_data %>%
 
 # add tract names 
 tract_data <- tract_data %>% 
-left_join(tractnames, by = "GEOID") %>% 
-  select(move_last(., c("state", "locality", "tract"))) 
+left_join(tractnames, by = c("GEOID" = "GEOID", "tract"= "tract")) %>%
+  select(move_last(., c("state", "locality", "tract")))
+
+# add tract names to block group (temporary solution without block group names)
+blkgrp_data <- blkgrp_data %>% 
+  left_join(tractnames, by = c("tract"= "tract"), multiple = "all") %>% 
+  select(move_last(., c("state", "locality", "tract")))
+
+# rm GEOID.y and rename GEOID.x
+blkgrp_data <- blkgrp_data %>% 
+  select(-GEOID.y) %>% 
+  rename(GEOID = GEOID.x)
 
 # b. Merge county data ----
 
@@ -196,6 +208,8 @@ all_data <- bind_rows("County" = county_data_geo,
                       "Census Tract" = tract_data_geo, 
                       .id = "GEO_LEVEL")
 
+all_data$county.nice <- toTitleCase(all_data$county.nice)
+
 # fix 3 var names (fixed in googlesheet)
 j <- match(pretty2$varname, names(all_data))
 # remove hmda metadata until/unless county summaries are added
@@ -252,7 +266,7 @@ ind_choices_ct <- split(group_df, group_df$group) %>%
   map(function(x)pull(x, varname, name = goodname))
 
 # create list of counties
-counties <- levels(factor(tract_data_geo$county.nice))
+counties <- levels(factor(toTitleCase(tract_data_geo$county.nice)))
 
 # get helpers
 source('datacode/helpers.R')
@@ -261,7 +275,7 @@ source('datacode/helpers.R')
 # ....................................................
 # 7. Define color palettes ----
 nb.cols <- 10
-mycolors <- colorRampPalette(brewer.pal(8, "YlGnBu"))(nb.cols)
+mycolors <- colorRampPalette(brewer.pal(9, "YlGnBu"))(nb.cols)
 
 
 # ....................................................
@@ -271,12 +285,12 @@ save(counties_geo, counties, all_data, mycolors,
      parks_sf, schools_sf, sabselem_sf, mcd_sf, group_df,
      ind_choices_county, ind_choices_bg, ind_choices_ct,
      helpers,
-     file = "data/app_data_2022.Rdata")
+     file = "data/app_data.Rdata")
 # load("data/app_data_2022.Rdata")
 
 save(counties_geo, counties, all_data, mycolors, 
      parks_sf, schools_sf, sabselem_sf, mcd_sf, group_df,
      ind_choices_county, ind_choices_bg, ind_choices_ct,
      helpers,
-     file = "cville-region/www/app_data_2022.Rdata")
+     file = "cville-region/www/app_data.Rdata")
 
