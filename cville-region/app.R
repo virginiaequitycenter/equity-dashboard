@@ -43,7 +43,10 @@ ui <- htmlTemplate(filename = "cville-atlas-template.html", main =
                             column(
                               width = 12,
                               cardComponent(
-                                accordianComponent("intro", "Dashboard Instructions", "Instruction Text here", "intro-1", "intro-2")
+                                accordianComponent("intro", "Dashboard Instructions",
+                                                   "Make selections in the boxes below to show demographic, economic and social data on the maps and correlation plot in tabs below.
+                                                    Variables include data related to Health, Housing, People, Youth & Education, Jobs, Wages & Income, and various Indices.",
+                                                   "intro-1", "intro-2")
                               )
                             )
                           ), br(), # end fluidRow
@@ -54,13 +57,12 @@ ui <- htmlTemplate(filename = "cville-atlas-template.html", main =
                                 selectInput("indicator1",
                                  "Select First Equity Indicator:",
                                  choices = ind_choices_county,
-                                 selected = ind_choices_county$People['Estimated Population']
-                                ) %>% 
-                                helper(type = "inline",
-                                  icon = "question-circle",
-                                  content = helpers$indicator,
-                                  size = "m"),
-                                accordianComponent("ind1", "Show Selected Variable Definition", textOutput("ind1_abt", inline = TRUE),"var-def-1", "map-ind-1")
+                                 selected = ind_choices_county$People['Estimated Population']) %>% 
+                                    helper(type = "inline",
+                                        icon = "question-circle",
+                                        content = helpers$indicator,
+                                        size = "m"),
+                                accordianComponent("ind1", "Show Selected Indicator Definition", textOutput("ind1_abt", inline = TRUE),"var-def-1", "map-ind-1")
                                 )
                             ) %>% tagAppendAttributes(class="mb-3 mb-sm-0"),
                             column(
@@ -74,7 +76,7 @@ ui <- htmlTemplate(filename = "cville-atlas-template.html", main =
                                   icon = "question-circle",
                                   content = helpers$indicator2,
                                   size = "m"),
-                              accordianComponent("ind2", "Show Selected Variable Definition", textOutput("ind2_abt", inline = TRUE),"var-def-2", "map-ind-2")
+                              accordianComponent("ind2", "Show Selected Indicator Definition", textOutput("ind2_abt", inline = TRUE),"var-def-2", "map-ind-2")
                               )
                             ) %>% tagAppendAttributes(class="mb-3 mb-sm-0"),
                             column(
