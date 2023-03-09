@@ -281,7 +281,7 @@ server <- function(input, output, session) {
   }
   
   ## leafletProxy Map Function ---- 
-  mapFunction <- function(mapData, mapId, fillColor, ind, popupText){
+  mapProxyFunction <- function(mapData, mapId, fillColor, ind, popupText){
     # map proxy
     proxy <- leafletProxy(mapId, data = mapData)
 
@@ -371,9 +371,9 @@ server <- function(input, output, session) {
           title = "Data not available",
           "Data not available for the current Geographic Level"
         ))
-        mapFunction(md(), "map1", "#969997", ind1, "<b>Data not available for the current Geographic Level</b>")
+        mapProxyFunction(md(), "map1", "#969997", ind1, "<b>Data not available for the current Geographic Level</b>")
     } else {
-      mapFunction(md(), "map1", colorNumeric(mycolors, domain = ind1)(ind1), ind1, ind1)
+      mapProxyFunction(md(), "map1", colorNumeric(mycolors, domain = ind1)(ind1), ind1, ind1)
      
     }
   })
@@ -399,10 +399,10 @@ server <- function(input, output, session) {
           title = "Data not available",
           "Data not available for the current Geographic Level"
         ))
-        mapFunction(md(), "map2", "#969997", ind2, "<b>Data not available for the current Geographic Level</b>")
+        mapProxyFunction(md(), "map2", "#969997", ind2, "<b>Data not available for the current Geographic Level</b>")
 
     } else {
-      mapFunction(md(), "map2", colorNumeric(mycolors, domain = ind2)(ind2), ind2, ind2)
+      mapProxyFunction(md(), "map2", colorNumeric(mycolors, domain = ind2)(ind2), ind2, ind2)
 
     }
   })
