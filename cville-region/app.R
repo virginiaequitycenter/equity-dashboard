@@ -223,43 +223,6 @@ server <- function(input, output, session) {
 
 # Map Functions -------------------------------------------------------
   
-  ## Parks/Schools/District Map Components Function ---- 
-  mapGroupFunction <- function(map, mapData){
-        addPolygons(map, data = mapData, color = "#969997",
-                    fill = FALSE,
-                    weight = 2) %>%
-        addCircles(data = st_collection_extract(parks_sf, "POINT"), color = "green",
-                    group="Parks",
-                    popup = ~ParkName) %>% 
-        addPolygons(data = st_collection_extract(parks_sf, "POLYGON"), color = "green",
-                    group="Parks",
-                    popup = ~ParkName) %>%
-        addCircles(data =  filter(schools_sf),
-                    group="Schools",
-                    popup = ~NAME) %>%
-        addPolygons(data = filter(sabselem_sf), 
-                    group="Elem School Zone",
-                    color = "blue", fill = FALSE, weight = 2,
-                    popup = ~schnam,
-                    highlight = highlightOptions(weight = 3,
-                                                  color = "blue",
-                                                  bringToFront = TRUE)) %>%
-        addPolygons(data = filter(mcd_sf), 
-                    group="Magisterial Districts",
-                    color = "purple", fill = FALSE, weight = 2,
-                    popup = ~NAMELSAD,
-                    highlight = highlightOptions(weight = 3,
-                                                  color = "purple",
-                                                  bringToFront = TRUE)) %>% 
-        addLayersControl(overlayGroups = c("Parks", "Schools", "Elem School Zone", "Magisterial Districts"),
-                          options = layersControlOptions(collapsed = FALSE), 
-                          position = "bottomright") %>% 
-        hideGroup("Parks") %>% 
-        hideGroup("Schools") %>% 
-        hideGroup("Elem School Zone") %>% 
-        hideGroup("Magisterial Districts") 
-  }
-
   ## Leaflet base map function ----
   renderLeafletFunction <- function(map) {
     renderLeaflet({
@@ -320,6 +283,43 @@ server <- function(input, output, session) {
     })
   }
   
+  ## Parks/Schools/District Map Components Function ---- 
+  mapGroupFunction <- function(map, mapData){
+    addPolygons(map, data = mapData, color = "#969997",
+                fill = FALSE,
+                weight = 2) %>%
+      addCircles(data = st_collection_extract(parks_sf, "POINT"), color = "green",
+                 group="Parks",
+                 popup = ~ParkName) %>% 
+      addPolygons(data = st_collection_extract(parks_sf, "POLYGON"), color = "green",
+                  group="Parks",
+                  popup = ~ParkName) %>%
+      addCircles(data =  filter(schools_sf),
+                 group="Schools",
+                 popup = ~NAME) %>%
+      addPolygons(data = filter(sabselem_sf), 
+                  group="Elem School Zone",
+                  color = "blue", fill = FALSE, weight = 2,
+                  popup = ~schnam,
+                  highlight = highlightOptions(weight = 3,
+                                               color = "blue",
+                                               bringToFront = TRUE)) %>%
+      addPolygons(data = filter(mcd_sf), 
+                  group="Magisterial Districts",
+                  color = "purple", fill = FALSE, weight = 2,
+                  popup = ~NAMELSAD,
+                  highlight = highlightOptions(weight = 3,
+                                               color = "purple",
+                                               bringToFront = TRUE)) %>% 
+      addLayersControl(overlayGroups = c("Parks", "Schools", "Elem School Zone", "Magisterial Districts"),
+                       options = layersControlOptions(collapsed = FALSE), 
+                       position = "bottomright") %>% 
+      hideGroup("Parks") %>% 
+      hideGroup("Schools") %>% 
+      hideGroup("Elem School Zone") %>% 
+      hideGroup("Magisterial Districts") 
+  }
+  
   ## Add Map Reset button function ----
   addResetMapButton <- function(leaf) {
     leaf %>%
@@ -358,9 +358,12 @@ server <- function(input, output, session) {
 
 # Build Map 1 -------------------------------------------------------
   
+  # render leaflet map1
   output$map1 <- renderLeafletFunction()
 
+  # update map1 based on selected indicator (listen_indicator1 reactive)
   observeEvent(listen_indicator1(), {
+    # get selected indicator column from map data
     ind1 <- md() %>% 
       filter(!is.na(.data[[input$indicator1]])) %>% 
       pull(input$indicator1)
@@ -371,24 +374,30 @@ server <- function(input, output, session) {
           title = "Data not available",
           "Data not available for the current Geographic Level"
         ))
+        # update map1 w/ gray polygons if data not available for geo level
         mapProxyFunction(md(), "map1", "#969997", ind1, "<b>Data not available for the current Geographic Level</b>")
     } else {
+      # update map1 with selected indicator
       mapProxyFunction(md(), "map1", colorNumeric(mycolors, domain = ind1)(ind1), ind1, ind1)
-     
     }
   })
 
+  # output title and source for map1
   output$maptitle <- renderText({paste0(attr(md()[[input$indicator1]], "goodname"))})
   output$source <- renderText({attr(md()[[input$indicator1]], "source")})
 
  
 # Build Map 2 -------------------------------------------------------
  
+  # render leaflet map2
   output$map2 <- renderLeafletFunction()
 
+  # render leaflet map on hidden (second) tab
   outputOptions(output, "map2", suspendWhenHidden = FALSE)
   
+  # update map2 based on selected indicator (listen_indicator2 reactive)
   observeEvent(listen_indicator2(), {
+    # get selected indicator column from map data
     ind2 <- md() %>%
       filter(!is.na(.data[[input$indicator2]])) %>%
       pull(input$indicator2)
@@ -399,14 +408,16 @@ server <- function(input, output, session) {
           title = "Data not available",
           "Data not available for the current Geographic Level"
         ))
+        # update map w/ gray polygons if data not available for geo level
         mapProxyFunction(md(), "map2", "#969997", ind2, "<b>Data not available for the current Geographic Level</b>")
-
     } else {
+      # update map2 with selected indicator
       mapProxyFunction(md(), "map2", colorNumeric(mycolors, domain = ind2)(ind2), ind2, ind2)
 
     }
   })
   
+  # output title and source for map2
   output$maptitle2 <- renderText({
     if (input$indicator2 != "None") paste0(attr(md()[[input$indicator2]], "goodname")) })
   output$source2 <- renderText({
