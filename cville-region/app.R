@@ -11,6 +11,8 @@ library(leaflet)
 library(plotly)
 library(sf)
 library(DT)
+library(biscale) # for tercile plots 
+library(stringi) # for tercile plots 
 
 source("functions/utils.R")
 
@@ -130,6 +132,14 @@ ui <- htmlTemplate(filename = "cville-atlas-template.html", main =
                                     br(),
                                     textOutput("source2")
                                   ),
+                                tabPanel("Differences",
+                                         h2(textOutput("terctitle", inline = TRUE)),
+                                         p("Each census tract in the selected Charlottesville region is ranked into three groups representing tracts with Low, Middle, or High values on the measure you select in the first indicator. The height of the bar shows the average value of the measure you select on the second indicator within that group of tracts. Hover over each bar to see the average value on the second indicator."),
+                                         br(),
+                                         plotlyOutput("tercile_plot"),
+                                         br(),
+                                         textOutput("source3")
+                                ),
                                 tabPanel("Selection Relationship",
                                     h2(textOutput("comptitle", inline = TRUE)) %>% 
                                       helper(type = "inline",
@@ -503,6 +513,45 @@ server <- function(input, output, session) {
       )
     }
   })
+  
+  
+  # Build Tercile plots -------------------------------------------------------
+  
+  output$terctitle <- renderText({
+    if (input$indicator2=="None") {
+      paste("You have not selected a second indicator. To compare, select a second indicator from the control panel.")
+    } else { 
+      paste(attr(md()[[input$indicator2]], "goodname"), "averages by ", 
+            attr(md()[[input$indicator1]], "goodname"), "rank")
+    }
+  })
+  
+  output$tercile_plot <- renderPlotly({
+    td <- md() %>% mutate(x = .data[[input$indicator1]], y = .data[[input$indicator2]])
+      to_tercile <- bi_class(td, x = x, y = y, style = "quantile", dim = 3)
+      to_tercile$var1_tercile <- stri_extract(to_tercile$bi_class, regex = '^\\d{1}(?=-\\d)')
+      
+      to_tercile$`Var 1 Group` <- ifelse(to_tercile$var1_tercile == 1, 'Low', ifelse(to_tercile$var1_tercile == 2, 'Medium', ifelse(to_tercile$var1_tercile == 3, 'High', '')))
+      to_tercile <- to_tercile %>% group_by(var1_tercile) %>% mutate(`Var 2 Mean` = mean(y, na.rm = T)) %>% slice(1)
+      t <- ggplot(to_tercile, aes(x = var1_tercile, y = `Var 2 Mean`,
+                                  fill = var1_tercile, label = `Var 1 Group`,
+                                  text = paste0('Mean of ', attr(to_tercile$y, "goodname"), ': ', round(`Var 2 Mean`, digits = 2)))) +
+        geom_bar(stat = 'identity', width = 0.66) +
+        scale_fill_manual(values = c('#dfb0d6', '#a5add3', '#569ab9')) +
+        scale_x_discrete(labels = paste0(c('Lowest ', 'Middle ', 'Highest '), 'third of tracts')) +
+        labs(x = attr(to_tercile$x, "goodname"),
+             y = attr(to_tercile$y, "goodname")) +
+        theme_minimal()
+      
+      ggplotly(t, tooltip = c('text')) %>%
+        layout(showlegend = FALSE, yaxis = list(side = "right", fixedrange = T), xaxis = list(fixedrange = T))
+  })
+  
+  # output title and source for tercile plots
+  output$differencestitle <- renderText({
+    if (input$indicator2 != "None") paste0(attr(md()[[input$indicator2]], "goodname")) })
+  output$source3 <- renderText({
+    if (input$indicator2 != "None") attr(md()[[input$indicator2]], "source")})
   
 # Build Data Table -------------------------------------------------------
   
