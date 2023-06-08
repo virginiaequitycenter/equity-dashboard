@@ -17,7 +17,7 @@ accordianComponent <- function(id, btnText, content, id2, id3){
 
 cardComponent <- function(content){
   HTML(paste0('
-  <div class="card">
+  <div class="card mb-2">
     <div class="card-body" style="padding-top:0;">
     ', content, '
     </div>
@@ -27,7 +27,7 @@ cardComponent <- function(content){
 
 cardComponentSelect <- function(select, accordian){
   HTML(paste0('
-  <div class="card">
+  <div class="card mb-2">
     <div class="card-body">
     ', select, accordian, '
     </div>
@@ -37,7 +37,7 @@ cardComponentSelect <- function(select, accordian){
 
 cardComponentSelectGeo <- function(check, radio, action){
   HTML(paste0('
-  <div class="card">
+  <div class="card mb-2">
     <div class="card-body">
     ', check, radio, action,'
     </div>

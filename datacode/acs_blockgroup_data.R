@@ -2,8 +2,9 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Acquire ACS data
-# Last updated: 01/10/2023
-  # Updates include: pulling 2021 ACS data and adding a few more variables 
+# Last updated: 06/08/2023
+  # Updates include: fixed otherRace category that was causing duplicate rows - 
+  # change removed inclusion of B03002_007 Estimate!!Total!!Not Hispanic or Latino!!Native Hawaiian and Other Pacific Islander alone
 # Metrics from ACS (in common with locality level): 
 # * Total population
 # * Poverty, child poverty 
@@ -293,7 +294,8 @@ blkgrp_asian  <- blkgrp_race %>%
   select(-c(asE, asM, estimate, moe))
 
 blkgrp_othrace  <- blkgrp_race %>% 
-  filter(variable %in% c("B03002_007", "B03002_008")) %>% 
+  filter(variable == "B03002_008") %>% # removed B03002_007-Not Hispanic or Latino!!Native Hawaiian and Other Pacific Islander alone, was causing a double count
+  # filter(variable %in% c("B03002_007", "B03002_008")) %>% 
   rename(otE = estimate,
          otM = moe) %>% 
   select(-variable) %>% 
@@ -449,4 +451,4 @@ blkgrp_data %>% select_at(vars(ends_with("E"))) %>% summary()
 
 # ....................................................
 # 5. Save ----
-saveRDS(blkgrp_data, file = "data/blkgrp_data.RDS") 
+saveRDS(blkgrp_data, file = "data/blkgrp_data_2023_06.RDS") 

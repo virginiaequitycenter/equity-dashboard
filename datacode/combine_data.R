@@ -2,7 +2,9 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Combine data for shiny app
-# Last updated: 03/08/2023
+# Last updated: 06/08/2023
+  # fixed block group/tract names and removed HDI measures from current iteration, other updates for needed for app
+# update: 03/08/2023
   # updated pretty table source sheet: https://docs.google.com/spreadsheets/d/1Fi1sHsWcYOYKL7lzgySxzlz0WqGxGwMGGoYKiYAZtTs/edit?usp=sharing
 ####################################################
 # 1. Load libraries 
@@ -38,7 +40,7 @@ move_last <- function(DF, last_col) {
 # ....................................................
 # 2. Load data ----
 # block group data
-blkgrp_data <- readRDS("data/blkgrp_data.RDS")
+blkgrp_data <- readRDS("data/blkgrp_data_2023_06.RDS") # need to use updated blkgrp_data.RDS from 6/8 update
 
 # tract level ACS
 tract_data <- readRDS("data/tract_data.RDS")
@@ -73,7 +75,8 @@ googlesheets4::gs4_deauth()
 tractname_sheet <- "https://docs.google.com/spreadsheets/d/19wl75rrOBjEqiQKMB38RSz3G9bGHxXbNUUK3x1iWfKk/edit#gid=0"
 tractnames <- googlesheets4::read_sheet(tractname_sheet, sheet = "Sheet1") 
 tractnames <- tractnames %>%
-  rename(count = locality)
+  rename(count = locality,
+         locality = locality_num)
 tractnames$GEOID <- as.character(tractnames$GEOID)
 # tractnames <- tractnames %>% 
 #   mutate(tract = substr(GEOID,6,11))
@@ -104,12 +107,12 @@ tract_data <- tract_data %>%
 
 # add tract names 
 tract_data <- tract_data %>% 
-left_join(tractnames, by = c("GEOID" = "GEOID", "tract"= "tract")) %>%
+left_join(tractnames, by = c("GEOID" = "GEOID", "locality"= "locality", "tract"= "tract"), multiple = "all") %>%
   select(move_last(., c("state", "locality", "tract")))
 
 # add tract names to block group (temporary solution without block group names)
 blkgrp_data <- blkgrp_data %>% 
-  left_join(tractnames, by = c("tract"= "tract"), multiple = "all") %>% 
+  left_join(tractnames, by = c("locality"= "locality", "tract"= "tract"), multiple = "all") %>% 
   select(move_last(., c("state", "locality", "tract")))
 
 # rm GEOID.y and rename GEOID.x
@@ -135,17 +138,18 @@ county_data <- county_data %>%
 #   "goalposts" defined in methodology: http://measureofamerica.org/Measure_of_America2013-2014MethodNote.pdf
 #   earnings goalposts are adjusted for inflation -- set to 2015 values
 
-county_data <- county_data %>% 
-  mutate(hlth_index = ( (lifeexpE-66) / (90-66) * 10),
-         inc_index = ( (log(earnE)-log(15776.86)) / (log(66748.26)-log(15776.86)) * 10),
-         attain_index = ( (((hsmoreE/100 + bamoreE/100 + gradmoreE/100)-0.5)/ (2-0.5)) *10),
-         enroll_index = (schlE-60)/(95-60)*10,
-         educ_index = attain_index*(2/3) + enroll_index*(1/3),
-         hd_index = round((hlth_index + educ_index + inc_index)/3,1))
+# commented out 6/7 to match ESVA dashboard? check later
+# county_data <- county_data %>% 
+#   mutate(hlth_index = ( (lifeexpE-66) / (90-66) * 10),
+#          inc_index = ( (log(earnE)-log(15776.86)) / (log(66748.26)-log(15776.86)) * 10),
+#          attain_index = ( (((hsmoreE/100 + bamoreE/100 + gradmoreE/100)-0.5)/ (2-0.5)) *10),
+#          enroll_index = (schlE-60)/(95-60)*10,
+#          educ_index = attain_index*(2/3) + enroll_index*(1/3),
+#          hd_index = round((hlth_index + educ_index + inc_index)/3,1))
 
-county_data <- county_data %>% 
-  select(-c("hlth_index", "inc_index", "attain_index", "enroll_index", "educ_index")) %>% 
-  select(move_last(., c("state", "locality")))
+# county_data <- county_data %>% 
+#   select(-c("hlth_index", "inc_index", "attain_index", "enroll_index", "educ_index")) %>% 
+#   select(move_last(., c("state", "locality")))
 
 # ....................................................
 # 4. Add nice county names ----
@@ -197,7 +201,7 @@ blkgrp_geo <- block_groups(state = 'VA', county = region, year = 2022) # from ti
 
 # join coordinates to data
 blkgrp_data_geo <- merge(blkgrp_geo, blkgrp_data, by = "GEOID", duplicateGeoms = TRUE) # from sp -- keep all obs (full_join)
-
+names(blkgrp_data_geo)[names(blkgrp_data_geo)=="NAME.y"] <- "NAME" #added 6/7
 
 # ....................................................
 # 6. Create attributes (CF Edits) ----
@@ -213,7 +217,8 @@ all_data$county.nice <- toTitleCase(all_data$county.nice)
 # fix 3 var names (fixed in googlesheet)
 j <- match(pretty2$varname, names(all_data))
 # remove hmda metadata until/unless county summaries are added
-j <- j[1:86]
+# j <- j[1:86] # commented out 6/7 in favor of below set
+j <- j[c(1:73)]
 
 # add pretty labels, sources and about to all_data
 for(i in seq_along(j)){
@@ -233,15 +238,27 @@ unique(all_data$GEO_LEVEL)
 # [1] "County"       "Block Group"  "Census Tract"
 
 # Block group
+# commented out 6/7 in favor of below
+# ind_bg <- all_data %>% 
+#   filter(GEO_LEVEL == "Block Group") %>% 
+#   select(group_df$varname[1:44]) %>% # indexing the list removes hmda vars; add back in if county summaries included
+#   map_lgl(~ !all(is.na(.x))) 
+
 ind_bg <- all_data %>% 
   filter(GEO_LEVEL == "Block Group") %>% 
-  select(group_df$varname[1:44]) %>% # indexing the list removes hmda vars; add back in if county summaries included
+  select(group_df$varname[c(1:38)]) %>% # indexing the list removes income by race, ahdi, and hmda vars; add back in if county summaries included
   map_lgl(~ !all(is.na(.x))) 
 
 # census tract
+# commented out 6/7 in favor of below
+# ind_ct <- all_data %>% 
+#   filter(GEO_LEVEL == "Census Tract") %>% 
+#   select(group_df$varname[1:44]) %>% 
+#   map_lgl(~ !all(is.na(.x))) 
+
 ind_ct <- all_data %>% 
   filter(GEO_LEVEL == "Census Tract") %>% 
-  select(group_df$varname[1:44]) %>% 
+  select(group_df$varname[c(1:38)]) %>% 
   map_lgl(~ !all(is.na(.x))) 
 
 # add indicator logicals to group_df and sort
@@ -249,21 +266,45 @@ ind_ct <- all_data %>%
 # column ct - TRUE if variable available for Census Tract
 # all vars available for County
 # (again, index on group_df removes hmda vars)
-group_df <- cbind(group_df[1:44,], bg = ind_bg[-length(ind_bg)], 
+# 6/7 replaced with below
+# group_df <- cbind(group_df[1:44,], bg = ind_bg[-length(ind_bg)], 
+#                   ct = ind_ct[-length(ind_ct)]) %>% 
+#   arrange(group, goodname)
+
+group_df <- cbind(group_df[c(1:38),], bg = ind_bg[-length(ind_bg)], 
                   ct = ind_ct[-length(ind_ct)]) %>% 
   arrange(group, goodname)
 
+# creates cases for app interface
+group_df <- group_df %>% mutate(ind_name = case_when(ct == "FALSE" & bg == "FALSE" ~ paste0(goodname, " (County Only)"), 
+                                                     ct == "TRUE" & bg == "FALSE" ~ paste0(goodname, " (County & Tract)"),
+                                                     ct == "TRUE" & bg == "TRUE" ~ paste0(goodname, " (All Levels)")),
+                                geo_level = case_when(ct == "FALSE" & bg == "FALSE" ~ "County", 
+                                                      ct == "TRUE" & bg == "FALSE" ~ "County, Census Tract",
+                                                      ct == "TRUE" & bg == "TRUE" ~ "County, Census Tract, Block Group"))
+k <- match(group_df$varname, names(all_data))
+k <- k[c(1:38)]
+
+# add pretty labels, sources and about to all_data
+for(i in seq_along(k)){
+  attr(all_data[[k[i]]], which = "geo_level") <- group_df$geo_level[i]
+}
+
+# one list of available indicators
+ind_choices <- split(group_df, group_df$group) %>% 
+  map(function(x)pull(x, varname, name = ind_name))
+
 # different lists of available indicators by geo level
-ind_choices_county <- split(group_df, group_df$group) %>% 
-  map(function(x)pull(x, varname, name = goodname))
+# ind_choices_county <- split(group_df, group_df$group) %>% 
+#   map(function(x)pull(x, varname, name = goodname))
 
-ind_choices_bg <- split(group_df, group_df$group) %>% 
-  map(function(x)filter(x, bg)) %>% 
-  map(function(x)pull(x, varname, name = goodname))
+# ind_choices_bg <- split(group_df, group_df$group) %>% 
+#   map(function(x)filter(x, bg)) %>% 
+#   map(function(x)pull(x, varname, name = goodname))
 
-ind_choices_ct <- split(group_df, group_df$group) %>% 
-  map(function(x)filter(x, ct)) %>% 
-  map(function(x)pull(x, varname, name = goodname))
+# ind_choices_ct <- split(group_df, group_df$group) %>% 
+#   map(function(x)filter(x, ct)) %>% 
+#   map(function(x)pull(x, varname, name = goodname))
 
 # create list of counties
 counties <- levels(factor(toTitleCase(tract_data_geo$county.nice)))
@@ -275,22 +316,27 @@ source('datacode/helpers.R')
 # ....................................................
 # 7. Define color palettes ----
 nb.cols <- 10
-mycolors <- colorRampPalette(brewer.pal(9, "YlGnBu"))(nb.cols)
+mycolors <- colorRampPalette(brewer.pal(8, "YlGnBu"))(nb.cols)
 
-
+# create data dictionary for download
+data_dict <- pretty2[c(1:73),] %>% 
+  unique() %>%
+  select(-c("description")) %>%
+  rename(variable_name = varname, description = goodname)
+  
 # ....................................................
 # 8. Save for app ----
 # create new app_data.Rdata file
 save(counties_geo, counties, all_data, mycolors, 
      parks_sf, schools_sf, sabselem_sf, mcd_sf, group_df,
-     ind_choices_county, ind_choices_bg, ind_choices_ct,
-     helpers,
-     file = "data/app_data.Rdata")
+     ind_choices,
+     helpers, data_dict,
+     file = "data/app_data_2023_06.Rdata")
 # load("data/app_data_2022.Rdata")
 
 save(counties_geo, counties, all_data, mycolors, 
      parks_sf, schools_sf, sabselem_sf, mcd_sf, group_df,
-     ind_choices_county, ind_choices_bg, ind_choices_ct,
-     helpers,
+     ind_choices,
+     helpers, data_dict,
      file = "cville-region/www/app_data.Rdata")
 
