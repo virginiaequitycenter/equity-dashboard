@@ -29,6 +29,12 @@ h1 {
   h2.accordion-header {
     margin-top: 1em;
   }
+
+  @media screen and (max-width: 768px) {
+    h2.accordion-header {
+      margin-top: 1.2em;
+    }
+  }
   
   h3{
     font-family: "Oswald";
