@@ -15,6 +15,25 @@ accordianComponent <- function(id, btnText, content, id2, id3){
   '))
 }
 
+accordianComponentSource <- function(id, btnText, textOutput1, textOutput2, id2, id3){
+  HTML(paste0('
+  <div class="accordion accordion-flush" id="',id2,'">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="',id3,'">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#',id,'" aria-expanded="false" aria-controls="',id,'">
+        ',btnText,'
+      </button>
+    </h2>
+    <div id="',id,'" class="accordion-collapse collapse" aria-labelledby="',id3,'" data-bs-parent="#',id2,'">
+      <div class="accordion-body">', textOutput1, 
+      '<p style="padding-top:5px;"><small>', textOutput2,'</small></p>', '</div>
+    </div>
+  </div>
+  </div>
+  '))
+}
+
+
 cardComponent <- function(content){
   HTML(paste0('
   <div class="card mb-2">
