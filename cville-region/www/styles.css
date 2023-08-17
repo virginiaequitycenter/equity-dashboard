@@ -144,8 +144,21 @@ margin: 0 auto;
     background-color: transparent;
   }
 
+@media (min-width: 576px) {
+  .col-sm-3 {
+    flex: 0 0 auto;
+    -webkit-flex: 0 0 auto;
+    width: 30%;
+  }
+  .col-sm-9 {
+    flex: 0 0 auto;
+    -webkit-flex: 0 0 auto;
+    width: 70%;
+  }
+
+  }
   @media (max-width: 768px) {
-    .col-sm-4, .col-sm-8 {
+    .col-sm-3, .col-sm-9 {
         flex: 0 0 auto;
         -webkit-flex: 0 0 auto;
         width: 100%;

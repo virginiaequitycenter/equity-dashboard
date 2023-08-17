@@ -1,7 +1,7 @@
 # Published version
 # Cville Region Equity Atlas Dashboard
-# Last Updated: 8/14/2023
-# Last Deployed: 6/8/2023
+# Last Updated: 8/17/2023
+# Last Deployed: 8/17/2023
 
 library(shiny)
 library(bslib)
@@ -25,10 +25,20 @@ load("www/app_data.Rdata")
 all_data <- st_transform(all_data, 4326)
 all_data$pop <- as.character(all_data$totalpopE)
 counties_geo <- st_transform(counties_geo, 4326)
+# below variables for leaflet map boundary settings
 bbox <- st_bbox(counties_geo) %>% as.vector()
 cville_geo <- counties_geo %>% filter(NAME == "Charlottesville")
 
 fewpal <- c("#7DC462", "#0D95D0", "#E72F52", "#774FA0", "#EFB743", "#D44627")
+
+# current variable that can't tercile at given geo levels
+# For future developement: asianE and snapE can do median split at block level,
+# but indigE, othraceE still have too many zeros at both tract and block for median split. 
+# not available at census tract: indigE, othraceE; 
+no_tercile_tract <- c("indigE", "othraceE")
+# not avail at block group: indigE, othraceE, asianE, snapE 
+no_tercile_block <- c("indigE", "othraceE", "asianE", "snapE")
+
 
 # Define UI ---------------------------------------------------------------
 ui <- htmlTemplate(filename = "cville-atlas-template.html", main =
@@ -356,22 +366,22 @@ server <- function(input, output, session) {
       proxy %>%
         clearGroup('indicatorSelection') %>% 
         addPolygons(data = mapData, fillColor = fillColor,
-                      fillOpacity = 0.5,
+                      fillOpacity = 0.4,
                       color = "#969997",
                       weight = 2,
                       smoothFactor = 0.2,
                       popup = popupContent,
                       highlight = highlightOptions(
-                        weight = 5,
+                        weight = 3,
                         fillOpacity = 0.7,
-                        bringToFront = F),
+                        bringToFront = FALSE),
                     group = 'indicatorSelection') %>%
         # mapGroupFunction(mapData) %>%
         clearControls() %>%
         addLegend(pal = colorNumeric(mycolors, domain = ind),
                     values = ind,
                     position = "topright",
-                    opacity = 0.25,
+                    opacity = 0.4,
                     title = attr(ind, "goodname"))
     })
   }
@@ -623,6 +633,8 @@ server <- function(input, output, session) {
   output$terctitle <- renderText({
     if (all(is.na(md()[[input$indicator1]])) | all(is.na(md()[[input$indicator2]])) | length(input$geo) == 0) {
       paste("Please make sure you have selected indicators available in the selected geographic level and/or at least one locality.")
+    } else if (((input$indicator1 %in% no_tercile_tract | input$indicator2 %in% no_tercile_tract) && input$geo_df == "Census Tract") | ((input$indicator1 %in% no_tercile_block | input$indicator2 %in% no_tercile_block) && input$geo_df == "Block Group")){
+      "One or more selected indicators are not available for this analysis at the selected geographic level. Select a larger geographic area to view."
     } else { 
       paste(attr(md()[[input$indicator1]], "goodname"), "rank by ", 
             attr(md()[[input$indicator2]], "goodname"), "averages")
@@ -631,6 +643,8 @@ server <- function(input, output, session) {
   
   output$tercile_plot <- renderPlotly({
     if (all(is.na(md()[[input$indicator1]])) | all(is.na(md()[[input$indicator2]])) | length(input$geo) == 0){
+      plotly_empty()
+    } else if (((input$indicator1 %in% no_tercile_tract | input$indicator2 %in% no_tercile_tract) && input$geo_df == "Census Tract") | ((input$indicator1 %in% no_tercile_block | input$indicator2 %in% no_tercile_block) && input$geo_df == "Block Group")){
       plotly_empty()
     } else {
     td <- md() %>% mutate(x = .data[[input$indicator1]], y = .data[[input$indicator2]])
@@ -684,6 +698,18 @@ server <- function(input, output, session) {
   output$tbl <- renderDT({
     if (all(is.na(md()[[input$indicator1]])) | all(is.na(md()[[input$indicator2]])) | length(input$geo) == 0){
       NULL
+    } else if (((input$indicator1 %in% no_tercile_tract | input$indicator2 %in% no_tercile_tract) && input$geo_df == "Census Tract") | ((input$indicator1 %in% no_tercile_block | input$indicator2 %in% no_tercile_block) && input$geo_df == "Block Group")){
+      tble_data <- md() %>% mutate(x = .data[[input$indicator1]], y = .data[[input$indicator2]])
+      tble_data <- st_drop_geometry(tble_data) %>% 
+        mutate(x = round(x, digits = 2),
+              y = round(y, digits = 2)) %>%
+        select(NAME, county.nice, tractnames, x, y, pop)
+      tble_data <- tble_data[with(tble_data, order(county.nice, NAME)), ]
+      datatable(tble_data,
+                colnames=c("Name", "Locality", "Tract Name", attr(md()[[input$indicator1]], "goodname"), attr(md()[[input$indicator2]], "goodname"), "Est. Population"),
+                rownames = FALSE,
+                options = list(pageLength = 10, list(3, 'asc'), scrollX = TRUE))
+
     } else {
       tble_data <- md() %>% mutate(x = .data[[input$indicator1]], y = .data[[input$indicator2]])
       tble_data <- st_drop_geometry(tble_data) 
@@ -696,6 +722,7 @@ server <- function(input, output, session) {
               var2_tercile_cat = case_when(var2_tercile == 1 ~ 'Low',
                                             var2_tercile == 2 ~ 'Medium',
                                             var2_tercile == 3 ~ 'High'),
+              x = round(x, digits = 2),
               y = round(y, digits = 2)) %>%
         select(NAME, county.nice, tractnames, x, var1_tercile_cat, y, var2_tercile_cat, pop)
       tble_data <- tble_data[with(tble_data, order(county.nice, NAME)), ]
