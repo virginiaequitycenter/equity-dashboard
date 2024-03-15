@@ -7,13 +7,14 @@ datatrends/
 # ignore data files
 *.RDS
 *.geojson
-# *.RData
+*.RData
 data.zip
 
 # ignore project files
 .DS_Store
 .Rhistory
 .Rproj.user/
+.Rapp.history
 
 # ignore shinyapps connection
 cville-region/rsconnect/*
