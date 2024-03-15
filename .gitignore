@@ -7,7 +7,7 @@ datatrends/
 # ignore data files
 *.RDS
 *.geojson
-*.RData
+# *.RData
 data.zip
 
 # ignore project files

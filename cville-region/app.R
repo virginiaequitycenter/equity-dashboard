@@ -1,6 +1,7 @@
 # Published version
 # Cville Region Equity Atlas Dashboard
-# Last Updated: 8/17/2023
+# Last Updated: 3/14/2024
+  # Added argument `selectize = FALSE` to selectInput() for shiny package v.1.8
 # Last Deployed: 8/17/2023
 
 library(shiny)
@@ -39,7 +40,6 @@ no_tercile_tract <- c("indigE", "othraceE")
 # not avail at block group: indigE, othraceE, asianE, snapE 
 no_tercile_block <- c("indigE", "othraceE", "asianE", "snapE")
 
-
 # Define UI ---------------------------------------------------------------
 ui <- htmlTemplate(filename = "cville-atlas-template.html", main =
         # fluidPage(
@@ -68,7 +68,8 @@ ui <- htmlTemplate(filename = "cville-atlas-template.html", main =
                   selectInput("indicator1",
                     "First Equity Indicator:",
                     choices = ind_choices,
-                    selected = ind_choices$People['Estimated Population (All Levels)']) %>% 
+                    selected = ind_choices$People['Estimated Population (All Levels)'],
+                    selectize = FALSE) %>% 
                   helper(type = "inline",
                       title = "First Equity Indicator",
                       icon = "question-circle",
@@ -81,7 +82,8 @@ ui <- htmlTemplate(filename = "cville-atlas-template.html", main =
                   selectInput("indicator2",
                     "Second Equity Indicator:",
                     choices = ind_choices,
-                    selected = ind_choices$Housing['Total Housing Units (All Levels)']) %>% 
+                    selected = ind_choices$Housing['Total Housing Units (All Levels)'],
+                    selectize = FALSE) %>% 
                   helper(type = "inline",
                       title = "Second Equity Indicator",
                       icon = "question-circle",
@@ -249,7 +251,6 @@ server <- function(input, output, session) {
     attr(md()[[input$indicator2]], "source")
   })
 
-  
   # get map data
   md <- reactive({
     all_data %>% filter(county.nice %in% input$geo &

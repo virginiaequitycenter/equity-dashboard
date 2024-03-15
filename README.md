@@ -1,7 +1,7 @@
 # equity-dashboard
-This repo hosts the R code to collect and prepare data and to create the app for the prototype dashboard for regional indicators.
+This repo hosts the R code to collect and prepare data and to create the app for the equity dashboard for regional indicators.
 
-[Regional Equity Dashboard Prototype](http://commdash.batten.virginia.edu:3838/cville-region/)
+[Charlottesville Regional Equity Dashboard](https://virginiaequitycenter.shinyapps.io/cville-region/)
 
 ## datacode
 
@@ -24,14 +24,15 @@ Files to pull and prepare data
 Files to create app
 
 * app.R: the file to create the app
-* BAed_003.html: file containing example story (created in stories)
-* alb_homesales_school.html: file containing example story (created in stories)
-* equity_links.Rmd: markdown file generating equity_links.html
-* equity_links.html: file containing links to research and resources
+* cville-atlas-template.html: HTML app template file
+* deploy.R
+* functions/utils.R: Utility functions for custom HTML styled elements in dashboard
+* www/app_data.Rdata: data for app generated from datacode
+* www/styles.css: Additional styles for dashboard
 
 ## stories
 
-Files to create example stories for dashboard
+Files to create example stories for dashboard (Older Version)
 
 * alb_sales/get_alb_data.R:	get real estate data from county website
 * alb_sales/albemarle.R: generate sales by jurisdiction

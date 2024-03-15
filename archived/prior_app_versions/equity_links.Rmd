@@ -1,0 +1,33 @@
+---
+title: "Resources and Links"
+date: ""
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+A place to highlight relevant work hosted elsewhere!
+
+These are intended to provide an example of what that could look like. If we decide we'd like a resource page like this, all ideas are welcome and needed for what to include.
+
+### Local Equity-related Research
+
+* [The Impact of Racism on Affordable Housingin Charlottesville.](https://www.justice4all.org/wp-content/uploads/2020/03/Housing-Report-FINAL.pdf) A report by the Charlottesville Low-Income Housing Coalition. February 2020. 
+
+* [Charlottesville Foster Care Study.](https://doi.org/10.18130/v3-ztey-hn31) Michele P. Claibourn, Charlotte McClintock et al. August 2019. Prepared by the Public Interest Data Lab for the Charlottesville Department of Social Services, Charlottesville, VA. University of Virginia.
+
+* Lifting Ourselves Up: Family Self-Sufficiency in the Charlottesville Region—Albemarle, Buckingham, Fluvanna, Greene, Louisa, Nelson counties & the city of Charlottesville, Virginia -- [The Orange Dot Report 3.0](https://www.pvcc.edu/sites/www.pvcc.edu/files/media/orange_dot_project_3.0.2018_0.pdf). Ridge Schuyler. October 2018.
+
+* [Charlottesville Child Welfare Study.](https://doi.org/10.18130/v3-1j50-3z57) Michele P. Claibourn, Charlotte McClintock et al. July 2018. Prepared by the Public Interest Data Lab for the Charlottesville Department of Social Services, Charlottesville, VA. University of Virginia.
+
+### Local Equity-related Resources
+
+* [Determined: Stories of resilience in a broken ecosystem](https://www.cvilletomorrow.org/articles/determined-stories-of-resilience-in-a-broken-ecosystem/). Jordy Yager and Sarad Davenport. June 2020.
+
+* [Charlottesville Police, Temporary Detentions](https://virginiaequitycenter.github.io/cvilleequity_stopandfrisk)
+
+* [Charlottesville Region COVID Equity and Recovery Datahub](https://virginiaequitycenter.github.io/cvilleequity_covid/)
+
+* [Charlottesville Region's Charitable NGO Dashboard](https://commpaslab.shinyapps.io/cville-nonprofits/)
