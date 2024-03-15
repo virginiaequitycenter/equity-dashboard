@@ -1,4 +1,7 @@
-# equity-dashboard
+# Charlottesville Regional Equity Dashboard
+
+README updated 2024-03-15
+
 This repo hosts the R code to collect and prepare data and to create the app for the equity dashboard for regional indicators.
 
 [Charlottesville Regional Equity Dashboard](https://virginiaequitycenter.shinyapps.io/cville-region/)
