@@ -2,9 +2,7 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Acquire Magisterial District geometry data
-# Last updated: 5/17/2024
-#  - updated to 2023 TIGER/Line shapefiles
-#  - https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.2023.html#list-tab-790442341
+# Last updated: 01/10/2023
 # From Tigris
 #
 # Geography: Magesterial Districts in Charlottesville region
@@ -35,7 +33,21 @@ region <- ccode$code # list of desired counties
 # pull county subdivisions and reduce to region
 mcd <- county_subdivisions(state = "VA", 
                            county = region, 
-                           year = "2023")
+                           year = "2022")
+# will need to change back to county = region
+# MPC: as of 1/10/2023, only 2022 tiger files are available,
+#.  representing boundaries as of 1/1/2022;
+#.  Albemarle's new districts weren't approved until 3/2022, so not updated
+#.  Not sure if other counties changed magisterial districts...
+# https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.2022.html#list-tab-2YME570UCQ7S22N648
+
+
+# LL 11/3/2022 note: As of today, it doesn't appear that the magisterial districts 
+# for Albemarle county have changes to redistricting option 2 that was selected
+# by the county. However, the documentation from tigris seems to suggest that it 
+# should be for the year 2020.... I tried downloading voting districts as well, 
+# and those also claim to be 2020. 
+# test <- voting_districts(state = "VA", county = "003", year = "2023")
 
 # ....................................................
 # 3. Check and transform ----

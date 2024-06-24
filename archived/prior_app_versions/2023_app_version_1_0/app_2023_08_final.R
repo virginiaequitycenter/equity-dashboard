@@ -2,13 +2,10 @@
 # Cville Region Equity Atlas Dashboard
 # Last Updated: 6/14/2024
   # Removed year argument from md() - only one year should be present in all_data
-  # Update all dashboard styling to bslib defaults, to avoid future conflicts with bootstrap updats
-  # Moved data prep to combine_data.R
-# Last Deployed: 6/24/2024
+# Last Deployed: 8/17/2023
 
 library(shiny)
 library(bslib)
-library(bsicons)
 library(shinyhelper)
 library(tidyverse)
 library(leaflet)
@@ -18,225 +15,201 @@ library(DT)
 library(biscale) # for tercile plots 
 library(stringi) # for tercile plots 
 
+source("functions/utils.R")
 
 # Load Data ---------------------------------------------------------------
 
 load("www/app_data.Rdata")
 
-# Below moved to combine_data.R
-# # was not deploying on shinyapps:
-# # https://stackoverflow.com/questions/61286108/error-in-cpl-transformx-crs-aoi-pipeline-reverse-ogrcreatecoordinatetrans
-# all_data <- st_transform(all_data, 4326)
-# all_data$pop <- as.character(all_data$totalpopE)
-# counties_geo <- st_transform(counties_geo, 4326)
-# # below variables for leaflet map boundary settings
-# # bbox <- st_bbox(counties_geo) %>% as.vector() # not needed
-# cville_geo <- counties_geo %>% filter(NAME == "Charlottesville")
-# 
-# fewpal <- c("#7DC462", "#0D95D0", "#E72F52", "#774FA0", "#EFB743", "#D44627")
-# 
-# # current variable that can't tercile at given geo levels
-# # For future developement: asianE and snapE can do median split at block level,
-# # but indigE, othraceE still have too many zeros at both tract and block for median split. 
-# # not available at census tract: indigE, othraceE; 
-# no_tercile_tract <- c("indigE", "othraceE")
-# # not avail at block group: indigE, othraceE, asianE, snapE 
-# no_tercile_block <- c("indigE", "othraceE", "asianE", "snapE")
+# was not deploying on shinyapps:
+# https://stackoverflow.com/questions/61286108/error-in-cpl-transformx-crs-aoi-pipeline-reverse-ogrcreatecoordinatetrans
+all_data <- st_transform(all_data, 4326)
+all_data$pop <- as.character(all_data$totalpopE)
+counties_geo <- st_transform(counties_geo, 4326)
+# below variables for leaflet map boundary settings
+bbox <- st_bbox(counties_geo) %>% as.vector()
+cville_geo <- counties_geo %>% filter(NAME == "Charlottesville")
+
+fewpal <- c("#7DC462", "#0D95D0", "#E72F52", "#774FA0", "#EFB743", "#D44627")
+
+# current variable that can't tercile at given geo levels
+# For future developement: asianE and snapE can do median split at block level,
+# but indigE, othraceE still have too many zeros at both tract and block for median split. 
+# not available at census tract: indigE, othraceE; 
+no_tercile_tract <- c("indigE", "othraceE")
+# not avail at block group: indigE, othraceE, asianE, snapE 
+no_tercile_block <- c("indigE", "othraceE", "asianE", "snapE")
 
 # Define UI ---------------------------------------------------------------
-ui <-  
-  htmlTemplate(filename = "cville-atlas-template.html", main =  # Removed CSS/footer due to issues bootstrap update
-    page_sidebar(
-          title = div(h1("Charlottesville Regional Equity Dashboard") %>% 
-                        tagAppendAttributes(class = 'bslib-page-title navbar-brand text-wrap fw-light'),
-                      actionLink("infoModal", label = "", icon = icon("circle-info")) %>%
-                        tagAppendAttributes(class = 'bslib-page-title fs-4', style = "position: absolute;top: 0.5rem;right: 1rem;")),
-          fillable = FALSE,
-          window_title = "Charlottesville Regional Equity Dashboard",
+ui <- htmlTemplate(filename = "cville-atlas-template.html", main =
+        # fluidPage(
+        navbarPage(
+          title = div(img(src='EC-Logo-atlas-blue.png',
+                         height = 50,
+                         alt = "Equity Center logo"),
+                         h1("Regional Equity Dashboard")) %>%
+                         tagAppendAttributes(class = 'nav-heading'),
+          windowTitle = "Charlottesville Regional Equity Dashboard",
+          collapsible = TRUE,
+          fluid = TRUE,
+          theme = bs_theme(version = 5),
           lang = "en",
-          theme = bs_theme(version = 5) %>%
-            bs_add_rules(
-              list(".navbar { background-color: #f8f9fa !important; }")
-            ),
-          sidebar = sidebar(
-            bg = "white",
-            width = "28%",
-            selectInput("indicator1",
-                        label = "First Equity Indicator:",
-                        choices = ind_choices,
-                        selected = ind_choices$People['Estimated Population (All Levels)']) %>% 
-              helper(type = "inline",
-                     title = "First Equity Indicator",
-                     icon = "question-circle",
-                     content = helpers$indicator,
-                     size = "m"),
-            textOutput("ind_geo1", inline = TRUE) %>% 
-              tagAppendAttributes(class = "small"),
-            accordion(
-              open = FALSE,
-              accordion_panel(
-                title = "Show Selected Indicator Definition & Source",
-                textOutput("ind1_abt", inline = TRUE), 
-                textOutput("ind1_source", inline = TRUE)
-              )
-            ),
-            selectInput("indicator2",
-                        label = "Second Equity Indicator:",
-                        choices = ind_choices,
-                        selected = ind_choices$Housing['Total Housing Units (All Levels)']) %>% 
-              helper(type = "inline",
-                     title = "Second Equity Indicator",
-                     icon = "question-circle",
-                     content = helpers$indicator2,
-                     size = "m"),
-            textOutput("ind_geo2", inline = TRUE) %>% 
-              tagAppendAttributes(class = "small"),
-            accordion(
-              open = FALSE,
-              accordion_panel(
-                "Show Selected Indicator Definition & Source",
-                textOutput("ind2_abt", inline = TRUE), 
-                textOutput("ind2_source", inline = TRUE)
-              )
-            ),
-            radioButtons(
-              inputId = "geo_df",
-              label = "Geographic Level:",
-              choices = c("County", "Census Tract", "Block Group"),
-              selected = "Census Tract",
-              inline = TRUE) %>% 
-              helper(type = "inline",
-                     title = "Geographic Level",
-                     icon = "question-circle",
-                     content = helpers$geo,
-                     size = "m"),
-            checkboxGroupInput(
-              inputId = "geo",
-              label = "Localities:",
-              choices = counties,
-              selected = counties,
-              inline = TRUE) %>% 
-              helper(type = "inline",
-                     title = "Localities",
-                     icon = "question-circle",
-                     content = helpers$counties,
-                     size = "m"),
-            actionButton(
-              inputId = "selectall_geo", 
-              label = "Select/Unselect All")
-          ), # end sidebar
-          navset_pill(
-            nav_panel(
-              title = "First Indicator Map",
-              icon = icon('map'),
-              value = "tab1",
-              br(), h2(textOutput("ind1_name", inline = TRUE)),
-              accordion(
-                open = FALSE,
-                accordion_panel(
-                  "Map Instructions",
-                  HTML("<p>The map below shows values for the <strong>First Equity Indicator</strong>. Click on areas below to view names and indicator values.</p>
-                  <p>Zoom in to see specific areas more closely. Click the reset button on the map to return the view to the full region. Click the \'Zoom to Charlottesville\' button to center the map on the city of Charlottesville.</p>")
+          underline = FALSE,
+          tabPanel("DASHBOARD",
+            fluidRow(
+              column(
+                width = 3,
+                cardComponent(
+                  accordianComponent("intro", "Dashboard Instructions",
+                                      "Make selections in the boxes below to show demographic, economic and social data on the maps and correlation plot in tabs below.
+                                      Variables include data related to Health, Housing, People, Youth & Education, Jobs, Wages & Income, and various Indices.",
+                                      "intro-1", "intro-2")
+                ),
+                cardComponentSelectGeo(
+                  selectInput("indicator1",
+                    "First Equity Indicator:",
+                    choices = ind_choices,
+                    selected = ind_choices$People['Estimated Population (All Levels)'],
+                    selectize = FALSE) %>% 
+                  helper(type = "inline",
+                      title = "First Equity Indicator",
+                      icon = "question-circle",
+                      content = helpers$indicator,
+                      size = "m"),
+                  textOutput("ind_geo1", inline = TRUE),
+                  accordianComponentSource("ind1", "Show Selected Indicator Definition & Source", textOutput("ind1_abt", inline = TRUE), textOutput("ind1_source", inline = TRUE),"var-def-1", "map-ind-1")
+                ),
+                cardComponentSelectGeo(
+                  selectInput("indicator2",
+                    "Second Equity Indicator:",
+                    choices = ind_choices,
+                    selected = ind_choices$Housing['Total Housing Units (All Levels)'],
+                    selectize = FALSE) %>% 
+                  helper(type = "inline",
+                      title = "Second Equity Indicator",
+                      icon = "question-circle",
+                      content = helpers$indicator2,
+                      size = "m"),
+                  textOutput("ind_geo2", inline = TRUE),
+                  accordianComponentSource("ind2", "Show Selected Indicator Definition & Source", textOutput("ind2_abt", inline = TRUE), textOutput("ind2_source", inline = TRUE),"var-def-2", "map-ind-2")
+                ),
+                cardComponentSelectGeo(
+                  checkboxGroupInput(
+                      inputId = "geo",
+                      label = "Localities:",
+                      choices = counties,
+                      selected = counties,
+                      inline = TRUE) %>%
+                      helper(type = "inline",
+                              title = "Localities",
+                              icon = "question-circle",
+                              content = helpers$counties,
+                              size = "m"),
+                  actionButton(inputId = "selectall_geo", 
+                              label = "Select/Unselect All"),
+                  radioButtons(inputId = "geo_df",
+                      label = "Geographic Level:",
+                      choices = c("County", "Census Tract", "Block Group"),
+                      selected = "Census Tract",
+                      inline = TRUE) %>%
+                  helper(type = "inline",
+                        title = "Geographic Level",
+                        icon = "question-circle",
+                        content = helpers$geo,
+                        size = "m")
                 )
-              ),
-              br(),
-              leafletOutput(outputId = "map1", width = '100%', height = 650)
-            ),
-            nav_panel(
-              title = "Second Indicator Map",
-              icon = icon('map'),
-              value = "tab2",
-              br(), h2(textOutput("ind2_name", inline = TRUE)),
-              accordion(
-                open = FALSE,
-                accordion_panel(
-                  "Map Instructions",
-                  HTML("<p>The map below shows values for the <strong>Second Equity Indicator</strong>. Click on areas below to view names and indicator values.</p>
-                  <p>Zoom in to see specific areas more closely. Click the reset button on the map to return the view to the full region. Click the \'Zoom to Charlottesville\' button to center the map on the city of Charlottesville.</p>")
-                )
-              ), br(),
-              leafletOutput(outputId = "map2", width = '100%', height = 650)
-            ),
-            nav_panel(
-              title = "Differences",
-              icon = icon('chart-simple'),
-              value = "tab3",
-              br(), h2(textOutput("terctitle", inline = TRUE)),
-              accordion(
-                open = FALSE,
-                accordion_panel(
-                  "Tercile Plot Instructions",
-                  HTML(
-                    "<p>This plot divides the selected geographic level (counties, census tracts, or block groups) in the selected localities into three groups, representing the Low, Middle, and High values of the measure selected for the First Equity Indicator.</p>
-                    <p>The height of the bar shows the average value of the measure selected for Second Equity Indicator within that group of counties, tracts, or blocks. Hover over each bar to see the average value of the Second Equity Indicator.</p>
-                    <p>For Example, when Estimated Population (First Indicator) and Total Housing Units (Second Indicator) are selected with the Geographic Level set to Census Tracts, this tercile plot shows that the tracts with the Lowest populations have an average value of Total Housing Units of 1,365, and the tracts with the Highest populations have an average value of Total Housing Units of 2,257.</p>"
+              ), # end column width=4
+              column(
+                width = 9,
+                tabsetPanel(
+                  id = "tabs",
+                  tabPanel(
+                    title = "First Indicator Map",
+                    icon = icon('map'),
+                    value = "tab1",
+                    h2(textOutput("ind1_name", inline = TRUE)),
+                    cardComponent(
+                    accordianComponent("map-desc", "Map Instructions",
+                                      "<p>The map below shows values for the <strong>First Equity Indicator</strong>. Click on areas below to view names and indicator values.</p>
+                                      <p>Zoom in to see specific areas more closely. Click the reset button on the map to return the view to the full region. Click the \'Zoom to Charlottesville\' button to center the map on the city of Charlottesville.</p>",
+                                      "mapdesc-1", "mapdesc-2")
+                    ), br(),
+                    leafletOutput(outputId = "map1", width = '100%', height = 600),
+                  ),
+                  tabPanel(
+                    title = "Second Indicator Map",
+                    icon = icon('map'),
+                    value = "tab2",
+                    h2(textOutput("ind2_name", inline = TRUE)),
+                    cardComponent(
+                    accordianComponent("map-desc2", "Map Instructions",
+                                      "<p>The map below shows values for the <strong>Second Equity Indicator</strong>. Click on areas below to view names and indicator values.</p>
+                                      <p>Zoom in to see specific areas more closely. Click the reset button on the map to return the view to the full region. Click the \'Zoom to Charlottesville\' button to center the map on the city of Charlottesville.</p>",
+                                      "mapdesc2-1", "mapdesc2-2")
+                    ), br(),
+                    leafletOutput(outputId = "map2", width = '100%', height = 600),
+                  ),
+                  tabPanel(
+                    title = "Differences",
+                    icon = icon('chart-simple'),
+                    h2(textOutput("terctitle", inline = TRUE)),
+                    cardComponent(
+                    accordianComponent("diff-desc", "Tercile Plot Instructions",
+                                      "<p>This plot divides the selected geographic level (counties, census tracts, or block groups) in the selected localities into three groups, representing the Low, Middle, and High values of the measure selected for the First Equity Indicator.</p>
+                                      <p>The height of the bar shows the average value of the measure selected for Second Equity Indicator within that group of counties, tracts, or blocks. Hover over each bar to see the average value of the Second Equity Indicator.</p>
+                                      <p>For Example, when Estimated Population (First Indicator) and Total Housing Units (Second Indicator) are selected with the Geographic Level set to Census Tracts, this tercile plot shows that the tracts with the Lowest populations have an average value of Total Housing Units of 1,365, and the tracts with the Highest populations have an average value of Total Housing Units of 2,257.</p>",
+                                      "diffdesc-1", "diffdesc-2")
+                    ), br(),
+                    plotlyOutput(outputId = "tercile_plot", width = '100%', height = 500),
+                  ),
+                  tabPanel(
+                    title = "Relationship",
+                    icon = icon('chart-line'),
+                    h2(textOutput("comptitle", inline = TRUE)) %>% 
+                      helper(type = "inline",
+                              title = "Relationship of Equity Indicators",
+                              icon = "question-circle",
+                              content = helpers$correlation,
+                              size = "m"),
+                    cardComponent(
+                    accordianComponent("comp-desc", "Correlation Plot Instructions",
+                                      "<p>This plot shows the correlation, or relationship, between the two selected indicators for the localities selected. This helps us see how two indicators relate to one another.</p>
+                                      <p>Each circle represents a census tract, county, or block group, depending on the selected Geographic Level. The size of each circle is based on the population of that geographic level so that geographies (counties, tracts, or blocks) with more people appear larger and those with less people appear smaller. The color of the circle is based on the locality.</p>
+                                      <p>The gray figures on the top and right show how frequently high and low values of the selected variables occur in the region; taller bars mean that range of values is more common.</p>
+                                      <p>To identify possible correlation between two indicators, look at the graph and ask: As the value of the first indicator increases, does the value of the second indicator notably increase or decrease?</p>
+                                      <p>It can also be useful to identify geographic areas (counties, census tracts, or block groups) that have extreme values on both measures. That is, are there geographic areas in the very bottom left corner of the graph, or in the top right?</p>",
+                                      "compdesc-1", "compdesc-2")
+                    ), br(),
+                    plotlyOutput(outputId = "scatterplot", width = '100%', height = 600),
+                  ),
+                  tabPanel(
+                    title = "Data Table",
+                    icon = icon('table-cells-large'),
+                    h2(textOutput("tbltitle", inline = TRUE)),
+                    p("The data table below shows the values for the selected Equity Indicators and the tercile group (Low, Medium, High) for the selected geographic level (counties, census tracts, or block groups) in the selected localities."),
+                    p("To download the data for all available measures and localities in this app, see the Download Data section at the bottom of the page."),
+                    DTOutput("tbl")
                   )
-                )
-              ), br(),
-              plotlyOutput(outputId = "tercile_plot", width = '100%', height = 500)
-            ),
-            nav_panel(
-              title = "Relationship",
-              icon = icon('chart-line'),
-              value = "tab4",
-              br(), h2(textOutput("comptitle", inline = TRUE)),
-              accordion(
-                open = FALSE,
-                accordion_panel(
-                  "Correlation Plot Instructions",
-                  HTML(
-                    "<p>This plot shows the correlation, or relationship, between the two selected indicators for the localities selected. This helps us see how two indicators relate to one another.</p>
-                    <p>Each circle represents a census tract, county, or block group, depending on the selected Geographic Level. The size of each circle is based on the population of that geographic level so that geographies (counties, tracts, or blocks) with more people appear larger and those with less people appear smaller. The color of the circle is based on the locality.</p>
-                    <p>The gray figures on the top and right show how frequently high and low values of the selected variables occur in the region; taller bars mean that range of values is more common.</p>
-                    <p>To identify possible correlation between two indicators, look at the graph and ask: As the value of the first indicator increases, does the value of the second indicator notably increase or decrease?</p>
-                    <p>It can also be useful to identify geographic areas (counties, census tracts, or block groups) that have extreme values on both measures. That is, are there geographic areas in the very bottom left corner of the graph, or in the top right?</p>"      )
-                )
-              ), br(),
-              plotlyOutput(outputId = "scatterplot", width = '100%', height = 600)
-            ),
-            nav_panel(
-              title = "Data",
-              icon = icon('table-cells-large'),
-              value = "tab5",
-              br(), h2(textOutput("tbltitle", inline = TRUE)),
-              p("The data table below shows the values for the selected Equity Indicators and the tercile group (Low, Medium, High) for the selected geographic level (counties, census tracts, or block groups) in the selected localities."),
-              p("To download the data for all available measures and localities in this app, see the Download Data section below."),
-              DTOutput("tbl"), br(),
-              h2("Download Data"),
-              p("Data in this Atlas is provided as a compressed folder, which includes CSVs for data at the county, census tract, and block group levels and a data dictionary."),
-              downloadButton("downloadBtn", "Download")
-            ),
-            nav_panel(
-              title = "Citation",
-              icon = icon('at'),
-              value = "tab5",
-              br(), h2("Citation"),
-              p("The Equity Center, Equitable Analysis Initiative; \"Charlottesville Regional Equity Dashboard;\" UVA Karsh Institute of Democracy Center for the Redress of Inequity Through Community-Engaged Scholarship; Accessed ", Sys.Date(), "; https://equityatlas.virginiaequitycenter.org/dashboards/cville-equity-dashboard/"),
-              br(), br(),
-              h3("Charlottesville Equity Atlas"),
-              p("For more tools and reports focused on regional equity measures:"),
-              a(href = "https://virginiaequitycenter.github.io/cville-equity-atlas/", "Visit the full Charlottesville Regional Equity Atlas site.", target="_top")
-            ),
-            # nav_spacer(),
-            # nav_item(actionLink("infoModal", label = "", icon = icon("question-circle")))
-          ) # end navset_pill
-        ) # end page_sidebar
-      ) # end htmlTemplate
+                ) # end tabsetPanel
+              ) # end column width=8
+            ), hr(), # end fluidRow
+            fluidRow(
+              column(
+                width = 12,
+                h3("Download Data"),
+                p("Data in this Atlas is provided as a compressed folder, which includes CSVs for data at the county, census tract, and block group levels and a data dictionary."),
+                downloadButton("downloadBtn", "Download"),
+                h3("Citation"),
+                p("The Equity Center, Democratization of Data Initiative; \"Charlottesville Regional Equity Dashboard;\" UVA Karsh Institute of Democracy Center for the Redress of Inequity Through Community-Engaged Scholarship; Accessed ", Sys.Date(), "; https://equityatlas.virginiaequitycenter.org/dashboards/cville-equity-dashboard/")
+                # br(), hr(), br()
+              ) # end column width=12
+            ) # end fluidRow
+          ) # end tabPanel
+)) # end navbarPage / end HTML template
 
 # Define server logic -----------------------------------------------------
 
 server <- function(input, output, session) {
-  
-  # for dashboard instructions modal
-  observeEvent(input$infoModal, {
-    showModal(
-      modalDialog(title = "Dashboard Instructions",
-                  footer = modalButton("Okay"),
-                  size = c("l"),
-                  easyClose = TRUE,
-                  HTML(helpers$instructions))
-    )
-  })
   
   # to make helper() info render
   observe_helpers()
@@ -314,7 +287,7 @@ server <- function(input, output, session) {
     renderLeaflet({
         leaflet() %>%
         addProviderTiles(providers$CartoDB.Positron) %>%
-        # fitBounds(bbox[1], bbox[2], bbox[3], bbox[4]) %>%
+        fitBounds(bbox[1], bbox[2], bbox[3], bbox[4]) %>%
         addMapPane('countyBoundaries', zIndex = 410) %>%
         addMapPane('cvilleBoundaries', zIndex = 420) %>%
         addMapPane('parks', zIndex = 440) %>%
@@ -376,12 +349,12 @@ server <- function(input, output, session) {
     
     # popup content
     popupContent <- if (input$geo_df == "County"){
-      paste0("<strong>", attr(ind, "goodname"), ": </strong>",
-             prettyNum(popupText, big.mark=",", preserve.width="none"), "<br>",
+      paste0(attr(ind, "goodname"), ": ",
+             popupText, "<br>",
              mapData[["NAME"]])
     } else {
-      paste0("<strong>", attr(ind, "goodname"), ": </strong>",
-             prettyNum(popupText, big.mark=",", preserve.width="none"), "<br>",
+      paste0(attr(ind, "goodname"), ": ",
+             popupText, "<br>",
              mapData[["NAME"]], "<br>",
              "Tract Name: ", mapData[["tractnames"]])
     }

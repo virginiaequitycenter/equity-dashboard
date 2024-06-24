@@ -7,19 +7,23 @@ helpers <- list(counties = c("Select one or more localities to view. The selecte
            	"<b>Census Tract:</b> A census tract is an area roughly equivalent to a neighborhood generally encompassing between 2,500 to 8,000 people. They are designed to be relatively consistent with respect to population characteristics, economic status, and living conditions.", "",
            	"<b>Block Group:</b> A block group is a cluster of adjacent census blocks within a census tract. Block groups generally contain between 600 and 3,000 people. This is the smallest geographical unit for which the census publishes sample data."), 
                
-               instructions = c("Make selections in the sidebar to view demographic, economic and social data on maps, and graphs on their relationship and difference in tabs in the navigation bar at the top of the page.
-                    Variables include data related to Health, Housing, People, Youth & Education, Jobs, Wages & Income, and various Indices.",
-             "There are 30+ equity indicators currently available in the following categories:<br /><br />",
-               "<b>Health:</b> Health insurance rates and life expectancy.<br /><br />", "",
-               "<b>Housing:</b> Number and rates of vacant housing, home ownership rates, percent rent burdened.<br /><br />", "",
-               "<b>Indices:</b> Measures derived from combined indicators including human development index, gini inequality index, and measures of residential dissimilarity.<br /><br />", "",
-               "<b>Jobs, Wages & Income:</b> Median household income and personal earnings, poverty and unemployment rates.<br /><br />", "",
-               "<b>People:</b> Basic demographics including total population, racial and ethnic populations, populations by age group, and disability.<br /><br />", "",
-               "<b>Youth & Education:</b> Educational attainment, school enrollment, child poverty rates.<br /><br />"),
+               category = c("There are 30+ indicators currently available, with more in the works. You may find filtering the available indicators to a specific category helpful to view included measures or locate a measure of interest. Selecting a category will limit the choice of indicators in the Primary and Secondary Indicator fields.",
+               "<b>Health:</b> Health insurance rates and life expectancy.", "",
+               "<b>Housing:</b> Number and rates of vacant housing, home ownership rates, percent rent burdened.", "",
+               "<b>Indices:</b> Measures derived from combined indicators including human development index, gini inequality index, and measures of residential dissimilarity.", "",
+               "<b>Jobs, Wages & Income:</b> Median household income and personal earnings, poverty and unemployment rates.", "",
+               "<b>People:</b> Basic demographics including total population, racial and ethnic populations, populations by age group.", "",
+               "<b>Youth & Education:</b> Educational attainment, school enrollment, child poverty rates."),
                
-               indicator = c("Select an indicator to view in the <b>First Indicator Map</b> tab in the left-side panel. The selected indicator will also be shown in the <b>Relationship</b> tab, as the <b>x-axis</b> of the graph, to show the correlation with the second indicator.<br /><br />Some equity indicators are not available at all geographic levels, see Available Geographic Levels below the selector."), 
+               indicator = c("Select an indicator to view in the <b>First Indicator Map</b> tab in the left-side panel. The selected indicator will also be shown in the <b>Relationship</b> tab, as the <b>x-axis</b> of the graph, to show the correlation with the second indicator. There are 30+ equity indicators currently available in the following categories:", "",
+                         	"<b>Health:</b> Health insurance rates and life expectancy.", "",
+                         	"<b>Housing:</b> Number and rates of vacant housing, home ownership rates, percent rent burdened.", "",
+                         	"<b>Indices:</b> Measures derived from combined indicators including human development index, gini inequality index, and measures of residential dissimilarity.", "",
+                         	"<b>Jobs, Wages & Income:</b> Median household income and personal earnings, poverty and unemployment rates.", "",
+                         	"<b>People:</b> Basic demographics including total population, racial and ethnic populations, populations by age group.", "",
+                         	"<b>Youth & Education:</b> Educational attainment, school enrollment, child poverty rates."), 
                
-               indicator2 = c("Select an equity indicator to view in the <b>Second Indicator Map</b> tab in the left-side panel. The selected indicator will also be shown in the <b>Relationship</b> tab, as the <b>y-axis</b> of the graph, to show the correlation with the first indicator. Available selections are the same as for the first equity indicator.<br /><br />Some equity indicators are not available at all geographic levels, see Available Geographic Levels below the selector."), 
+               indicator2 = c("Select an equity indicator to view in the <b>Second Indicator Map</b> tab in the left-side panel. The selected indicator will also be shown in the <b>Relationship</b> tab, as the <b>y-axis</b> of the graph, to show the correlation with the first indicator. Available selections are the same as for the first equity indicator."), 
                
                time = c("<b>Under Development.</b> Some indicators are available for multiple years. Select the year you wish to view. Currently, over time data is only present for total population and population by race or ethnicity."), 
                

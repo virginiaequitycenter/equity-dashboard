@@ -2,9 +2,7 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Acquire Park geometry data
-# Last updated: 5/17/2024
-  # - Updated year for tract bounds, and increased timeout for osm function opq(), but otherwise
-  #   no changes to process
+# Last updated: 01/11/2023
 # Data from Open Street Map using the osm package
 ## Open street map amenity key: https://wiki.openstreetmap.org/wiki/Key:amenity
 ####################################################
@@ -29,11 +27,7 @@ ccode <- read_csv("datacode/county_codes.csv")
 ccode <- ccode[1:6,]
 region <- ccode$code # list of desired counties
 
-tract_year <- 2023
-
-cville_bounds <- tracts(state = 'VA', 
-                        county = region, 
-                        year = tract_year) 
+cville_bounds <- tracts(state = 'VA', county = region, year = 2022) 
 
 # align crs
 cville_bounds <- sf::st_transform(cville_bounds, 4326)
@@ -42,9 +36,7 @@ cville_bbox <- st_bbox(cville_bounds)
 
 ### 2. Parks ----------------------------------------------------------------------------------------
 # Cville parks map
-# May need to increase timeout value if runtime error occurs
-region_parks <- opq(bbox = cville_bbox,
-                    timeout = 100) %>%
+region_parks <- opq(cville_bbox) %>% 
   add_osm_feature(key = "leisure", value = "park") %>% 
   osmdata_sf()
 

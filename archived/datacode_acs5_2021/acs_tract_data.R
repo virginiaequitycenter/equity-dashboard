@@ -2,8 +2,8 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Acquire ACS data
-# Last updated: 5/17/2024
-  # Updates include: pulling 2022 ACS data 
+# Last updated: 1/10/2023
+  # Updates include: pulling 2021 ACS data and adding a few more variables 
 # Metrics from ACS (in common with locality level): 
 # * Total population
 # * Poverty, child poverty 
@@ -16,7 +16,7 @@
 # * Median personal earnings
 # * Net school enrollment
 
-# Based on: ACS 2018-2022  
+# Based on: ACS 2017-2021 
 # Geography: Tracts in Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene 
 #     Louisa, Fluvanna, Nelson,
@@ -36,42 +36,15 @@
 library(tidyverse)
 library(tidycensus)
 
+
 # Census api key
-# census_api <- Sys.getenv("CENSUS_API_KEY")
 # census_api_key("", install = TRUE, overwrite = TRUE) # add key
 
-# ACS year
-acs_year <- 2022
-
 # Variable view helper
-# acs_var <- load_variables(acs_year, "acs5", cache = TRUE)
-# acs_var <- load_variables(acs_year, "acs5/subject", cache = TRUE)
-# acs_var <- load_variables(acs_year, "acs5/profile", cache = TRUE)
-# dec_var <- load_variables(acs_year, "sf1", cache = TRUE)
-
-# Variable view helper
-all_acs_meta <- function(){
-  # Gets the list of all variables from all acs5 metadata tables
-  vars1 <- load_variables(acs_year, "acs5", cache = TRUE) %>% select(-geography)
-  vars2 <- load_variables(acs_year, "acs5/subject", cache = TRUE)
-  vars3 <- load_variables(acs_year, "acs5/profile", cache = TRUE)
-  
-  # Provides column with specific lookup
-  vars1$dataset_table <- "acs5"
-  vars2$dataset_table <- "acs5/subject"
-  vars3$dataset_table <- "acs5/profile"
-  
-  # Combine all table rows
-  all_vars_meta <- rbind(vars1, vars2, vars3)
-  
-  return(all_vars_meta)
-}
-
-# Pull all variable names from metadata
-metadata_var <- all_acs_meta()
-
-# View acs metadata tables
-# view(metadata_var)
+# acs_var <- load_variables(2021, "acs5", cache = TRUE)
+# acs_var <- load_variables(2021, "acs5/subject", cache = TRUE)
+# acs_var <- load_variables(2021, "acs5/profile", cache = TRUE)
+# dec_var <- load_variables(2021, "sf1", cache = TRUE)
 
 # Variable of interest -
 ##  - Total population -- B01003_001
@@ -81,15 +54,15 @@ metadata_var <- all_acs_meta()
 ##  - Gini Index of Income Inequality -- B19083_001
 ##  - Percent high school graduate or higher -- S1501_C02_014
 ##  - Percent bachelor's degree or higher -- S1501_C02_015
-##  - Percent graduate degree or higher -- S1501_C02_013
-##  - Percent white alone -- DP05_0079P
-##  - Percent black or African American alone -- DP05_0080P
-##  - Percent American Indian and Alaska Native alone -- DP05_0081P
-##  - Percent Asian alone -- DP05_0082P
-##  - Percent Native Hawaiian and Other Pacific Islander alone -- DP05_0083P
-##  - Percent Some other race alone -- DP05_0084P
-##  - Percent Two or more races -- DP05_0085P
-##  - Percent Hispanic or Latino -- DP05_0073P
+##  - Percent master's degree or higher -- S1501_C02_013
+##  - Percent white alone -- DP05_0077P
+##  - Percent black or African American alone -- DP05_0078P
+##  - Percent American Indian and Alaska Native alone -- DP05_0079P
+##  - Percent Asian alone -- DP05_0080P
+##  - Percent Native Hawaiian and Other Pacific Islander alone -- DP05_0081P
+##  - Percent Some other race alone -- DP05_0082P
+##  - Percent Two or more races -- DP05_0083P
+##  - Percent Hispanic or Latino -- DP05_0071P
 ##  - Percent unemployment (Population 16 and over) -- S2301_C04_001
 ##  - Percent with health insurance (Civilian noninstitutionalized population) -- S2701_C03_001	
 ##  - Percent with public health insurance (Civilian noninstitutionalized population) -- S2704_C03_001
@@ -100,18 +73,19 @@ metadata_var <- all_acs_meta()
 ##  - School enrollment for the population age 3 to 24 -- S1401_C02_014, S1401_C02_016, S1401_C02_018, S1401_C02_020, S1401_C02_022, S1401_C21_024
 ##  - Median personal earnings of all workers with earnings ages 16 and older -- S2001_C01_002
 ##  - Percent of cost-burdened renters -- B25070_007+B25070_008+B25070_009+B25070_010/B25070_001
-##  - Home ownership rates -- B25003_002/B25003_001
+##  - Home ownership rates -- B25003_002/B25003_002
 ##  - Housing vacant units -- B25002_003/B25002_001
 ##  - Number of households who receive cash public assistance/SNAP benefits -- B19058_002
 ##  - Number of foreign-born residents -- B05002_013
-##  - Number of residents who have a disability -- S1810_C02_001 - (civilian noninstitutionalized population)
+##  - Number of residents who have a disability -- C18130_003 + C18130_010 + C18130_017
+
 
 # ....................................................
 # 2. Define localities, variables, pull data ----
 
 # List of desired localities by FIPS
 ccode <- read_csv("datacode/county_codes.csv")
-ccode <- ccode[1:6,] # BRHD localities only
+ccode <- ccode[1:6,]
 region <- ccode$code # list of desired counties
 # - 003 Albemarle County  
  # - 015 Augusta County
@@ -137,8 +111,7 @@ varlist_s = c("S1701_C03_001", # povrate
             "S2301_C04_001",   # unemp
             "S2701_C03_001",   # hlthins
             "S2704_C03_001",   # pubins
-            "S2001_C01_002",   # earn
-            "S1810_C02_001")   # disabled 
+            "S2001_C01_002")   # earn
             
 
 varlist_b = c("B01003_001", # totalpop
@@ -162,7 +135,7 @@ tract_data_s <- get_acs(geography = "tract",
                       state = "VA", 
                       county = region, 
                       survey = "acs5",
-                      year = acs_year, 
+                      year = 2021, 
                       output = "wide")
 
 tract_data_b <- get_acs(geography = "tract",
@@ -170,7 +143,7 @@ tract_data_b <- get_acs(geography = "tract",
                        state = "VA", 
                        county = region, 
                        survey = "acs5",
-                       year = acs_year, 
+                       year = 2021, 
                        output = "wide")
 
 # rename variables
@@ -184,8 +157,7 @@ names(tract_data_s) = c("GEOID", "NAME",
                         "unempE", "unempM",
                         "hlthinsE", "hlthinsM",
                         "pubinsE", "pubinsM",
-                        "earnE", "earnM",
-                        "disabledE", "disabledM")
+                        "earnE", "earnM")
 
 names(tract_data_b) = c("GEOID", "NAME",  
                          "totalpopE", "totalpopM",
@@ -238,21 +210,29 @@ tract_race <- get_acs(geography = "tract",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = acs_year)
+          year = 2021)
 
 tract_age <- get_acs(geography = "tract", 
           table = "S0101", 
           state = "VA", 
           county = region, 
           survey = "acs5", 
-          year = acs_year)
+          year = 2021)
 
 tract_enroll <- get_acs(geography = "tract", 
           table = "S1401", 
           state = "VA", 
           county = region, 
           survey = "acs5", 
-          year = acs_year)
+          year = 2021)
+
+tract_disability <- get_acs(geography = "tract", 
+                             table = "C18130", 
+                             state = "VA", 
+                             county = region, 
+                             survey = "acs5",
+                             year = 2021) 
+
 
 # ....................................................
 # 3. Reduce and Combine data ----
@@ -290,43 +270,43 @@ tract_age65 <- tract_age %>%
 #             but other race and native hawaiian/pacific islander combined
 #             due to very small values
 tract_white <- tract_race %>% 
-  filter(variable == "DP05_0079P") %>% 
+  filter(variable == "DP05_0077P") %>% 
   rename(whiteE = estimate,
          whiteM = moe) %>% 
   select(-variable)
 
 tract_black <- tract_race %>% 
-  filter(variable == "DP05_0080P") %>% 
+  filter(variable == "DP05_0078P") %>% 
   rename(blackE = estimate,
          blackM = moe) %>% 
   select(-variable)
 
 tract_indig <- tract_race %>% 
-  filter(variable == "DP05_0081P") %>% 
+  filter(variable == "DP05_0079P") %>% 
   rename(indigE = estimate,
          indigM = moe) %>% 
   select(-variable)
 
 tract_asian <- tract_race %>% 
-  filter(variable == "DP05_0082P") %>% 
+  filter(variable == "DP05_0080P") %>% 
   rename(asianE = estimate,
          asianM = moe) %>% 
   select(-variable)
 
 tract_othrace <- tract_race %>% 
-  filter(variable %in% c("DP05_0083P", "DP05_0084P")) %>% 
+  filter(variable %in% c("DP05_0081P", "DP05_0082P")) %>% 
   group_by(GEOID, NAME) %>% 
   summarize(othraceE = sum(estimate),
             othraceM = moe_sum(moe = moe, estimate = estimate))
 
 tract_multi <- tract_race %>% 
-  filter(variable == "DP05_0085P") %>% 
+  filter(variable == "DP05_0083P") %>% 
   rename(multiE = estimate,
          multiM = moe) %>% 
   select(-variable)
 
 tract_ltnx <- tract_race %>% 
-  filter(variable == "DP05_0073P") %>% 
+  filter(variable == "DP05_0071P") %>% 
   rename(ltnxE = estimate,
          ltnxM = moe) %>% 
   select(-variable)
@@ -352,6 +332,13 @@ tract_schl <- tract_schl_ratio %>%
             schlM = moe_prop(schl_num, schl_den, schl_numM, schl_denM),
             schlM = round(schlM*100,1))
 
+tract_dis <- tract_disability %>%
+  filter(variable == "C18130_003" | variable == "C18130_010" | variable == "C18130_017") %>%
+  group_by(GEOID, NAME) %>% 
+  summarize(disability_numE = sum(estimate), 
+            disability_numM = moe_sum(moe = moe, estimate = estimate))
+
+
 # Combine indicators
 # joining columns
 tract_data <- tract_data_s %>% 
@@ -367,10 +354,11 @@ tract_data <- tract_data_s %>%
   left_join(tract_age17) %>% 
   left_join(tract_age24) %>% 
   left_join(tract_age64) %>% 
-  left_join(tract_age65)
+  left_join(tract_age65) %>%
+  left_join(tract_dis)
 
 tract_data <- tract_data %>% 
-  mutate(year = as.character(acs_year)) %>% 
+  mutate(year = "2021") %>% 
   select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, indigE, indigM, othraceE, othraceM, multiE, multiM, ltnxE, ltnxM, everything())
 
 tract_data <- tract_data %>% 
@@ -382,8 +370,9 @@ tract_data <- tract_data %>%
 # 4. Summarize/Examine indicators ----
 tract_data %>% select_at(vars(ends_with("E"))) %>% summary()
 
-# ggplot(tract_data, aes(x = bamoreE, y = giniE)) + 
-#   geom_point() + geom_smooth()
+ggplot(tract_data, aes(x = bamoreE, y = giniE)) + 
+  geom_point() + geom_smooth()
+
 
 # ....................................................
 # 5. Save ----

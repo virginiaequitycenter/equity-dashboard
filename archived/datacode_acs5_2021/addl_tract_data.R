@@ -1,15 +1,14 @@
 ####################################################
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
-# Acquire Additional Tract-Level data: for post-2020 census tracts
-# Last updated: 5/17/2024
+# Acquire Additiona Tract-Level data: for post-2020 census tracts
+# Last updated: 01/11/2023
+# New data has not been published since the 2010-2015 estimates as of 07/17/2022
 # * Segregation measures (from ACS data, but with more derivation)
-# * Small-area life expectancy estimates
-#    - New data has not been published since the 2010-2015 estimates (last checked 5/17/2024)
 #
 # Geography: Tracts in Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene 
-#     Louisa, Fluvanna, Nelson
+#     Louisa, Fluvanna, Nelson,
 ####################################################
 # 1. Load libraries
 # 2. Segregation measures
@@ -27,14 +26,11 @@ ccode <- read_csv("datacode/county_codes.csv")
 ccode <- ccode[1:6,] # just brhd/tjpd
 region <-ccode$code # list of desired counties
 
-# ACS year
-acs_year <- 2022
-
 # ....................................................
 # 2. Segregation measures ----
 # a. acquire block group data ----
 race_table <-get_acs(geography = "block group", 
-                       year = acs_year, 
+                       year = 2021, 
                        state = "VA",
                        county = region, 
                        table = "B03002", 
@@ -53,7 +49,7 @@ seg_blkgrp <- race_table %>%
          multi = B03002_009E,
          hisp = B03002_012E, 
          total = B03002_001E,
-         year = as.character(acs_year),
+         year = 2021,
          state = substr(GEOID, 1,2),
          county = substr(GEOID, 3,5),
          tract = substr(GEOID, 6,11),
@@ -62,7 +58,7 @@ seg_blkgrp <- race_table %>%
 
 # b. acquire tract data ----
 race_table <- get_acs(geography = "tract", 
-                        year = acs_year, 
+                        year = 2021, 
                         state = "VA",
                         county = region, 
                         table = "B03002", 
@@ -81,7 +77,7 @@ seg_tract <- race_table %>%
          comulti = B03002_009E,
          cohisp = B03002_012E, 
          cototal = B03002_001E,
-         year = as.character(acs_year),
+         year = "2021",
          state = substr(GEOID, 1,2),
          county = substr(GEOID, 3,5),
          tract = substr(GEOID, 6,11)) %>% 

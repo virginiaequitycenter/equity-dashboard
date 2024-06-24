@@ -2,8 +2,9 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Acquire ACS data
-# Last updated: 5/16/2024
-  # Updated for ACS 2018-2022
+# Last updated: 06/08/2023
+  # Updates include: fixed otherRace category that was causing duplicate rows - 
+  # change removed inclusion of B03002_007 Estimate!!Total!!Not Hispanic or Latino!!Native Hawaiian and Other Pacific Islander alone
 # Metrics from ACS (in common with locality level): 
 # * Total population
 # * Poverty, child poverty 
@@ -16,14 +17,14 @@
 # * Median personal earnings
 # * Net school enrollment
 #
-# Based on: ACS 2018-2022 
+# Based on: ACS 2017-2021 
 # Geography: Block groups in Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene 
 #     Louisa, Fluvanna, Nelson,
 ####################################################
 # 1. Load libraries, provide api key (if needed), identify variables
 # 2. Define variables, pull data
-# 3. Metrics specific to locality level 
+# # 3. Metrics specific to locality level 
 # 4. Reduce, derive estimates, combine
 # 5. Summarize/Examine
 # 6. Save
@@ -39,48 +40,17 @@ library(tidycensus)
 
 
 # Census api key
-# census_api <- Sys.getenv("CENSUS_API_KEY")
 # census_api_key("", install = TRUE, overwrite = TRUE) # add key
 
-# ACS year
-acs_year <- 2022
-
-# Decennial year
-# dec_year <- 2020
-
 # Variable view helper
-# acs_var <- load_variables(year, "acs5", cache = TRUE)
-# acs_var <- load_variables(year, "acs5/subject", cache = TRUE)
-# acs_var <- load_variables(year, "acs5/profile", cache = TRUE)
-# dec_var <- load_variables(2020, "sf1", cache = TRUE)
-
-# Variable view helper
-all_acs_meta <- function(){
-  # Gets the list of all variables from all acs5 metadata tables
-  vars1 <- load_variables(acs_year, "acs5", cache = TRUE) %>% select(-geography)
-  vars2 <- load_variables(acs_year, "acs5/subject", cache = TRUE)
-  vars3 <- load_variables(acs_year, "acs5/profile", cache = TRUE)
-  
-  # Provides column with specific lookup
-  vars1$dataset_table <- "acs5"
-  vars2$dataset_table <- "acs5/subject"
-  vars3$dataset_table <- "acs5/profile"
-  
-  # Combine all table rows
-  all_vars_meta <- rbind(vars1, vars2, vars3)
-  
-  return(all_vars_meta)
-}
-
-# Pull all variable names from metadata
-metadata_var <- all_acs_meta()
-
-# View acs metadata tables
-# view(metadata_var)
+# acs_var <- load_variables(2021, "acs5", cache = TRUE)
+# acs_var <- load_variables(2021, "acs5/subject", cache = TRUE)
+# acs_var <- load_variables(2021, "acs5/profile", cache = TRUE)
+# dec_var <- load_variables(2021, "sf1", cache = TRUE)
 
 # Variable of interest -
 ##  - Total population -- B01003_001
-##  - Median HH Income -- B19013_001	
+##  - Median HH Income -- B19013	
 ##  - Percent high school graduate or higher -- B15003
 ##  - Percent bachelor's degree or higher -- B15003
 ##  - Percent master's degree or higher -- B15003
@@ -102,7 +72,7 @@ metadata_var <- all_acs_meta()
 ##  - Median personal earnings of all workers with earnings ages 16 and older -- B20002
 ##  - Percent of cost-burdened renters -- B25070_007+B25070_008+B25070_009+B25070_010/B25070_001
 ##  - Housing vacant units -- B25002_003/B25002_001
-##  - Home ownership rates -- B25003_002/B25003_001
+##  - Home ownership rates -- B25003_002/B25003_002
 ##  - Percent of households who receive cash public assistance/SNAP benefits -- B19058_002
 
 ## Currently unavailable but may be of interest in the future:
@@ -116,7 +86,7 @@ metadata_var <- all_acs_meta()
 
 # List of desired localities by FIPS
 ccode <- read_csv("datacode/county_codes.csv")
-ccode <- ccode[1:6,] # BRHD localities only
+ccode <- ccode[1:6,]
 region <- ccode$code # list of desired counties
 # - 003 Albemarle County  
 # - 015 Augusta County
@@ -154,7 +124,7 @@ blkgrp_data_b <- get_acs(geography = "block group",
                          state = "VA", 
                          county = region, 
                          survey = "acs5",
-                         year = acs_year, 
+                         year = 2021, 
                          output = "wide")
 
 # rename variables
@@ -205,7 +175,7 @@ blkgrp_educ <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = acs_year)
+          year = 2021)
 
 # for race
 blkgrp_race <- get_acs(geography = "block group", 
@@ -213,7 +183,7 @@ blkgrp_race <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = acs_year)
+          year = 2021)
 
 # for blkgrp_unemp
 blkgrp_emp <- get_acs(geography = "block group", 
@@ -221,7 +191,7 @@ blkgrp_emp <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = acs_year)
+          year = 2021)
 
 # for blkgrp_hlthins, blkgrp_pubins
 blkgrp_insur <- get_acs(geography = "block group", 
@@ -229,7 +199,7 @@ blkgrp_insur <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = acs_year)
+          year = 2021)
 
 # for age
 blkgrp_age <- get_acs(geography = "block group", 
@@ -237,7 +207,7 @@ blkgrp_age <- get_acs(geography = "block group",
           state = "VA", 
           county = region, 
           survey = "acs5",
-          year = acs_year)
+          year = 2021)
 
 # ....................................................
 # 3. Reduce and Combine data ----
@@ -324,10 +294,11 @@ blkgrp_asian  <- blkgrp_race %>%
   select(-c(asE, asM, estimate, moe))
 
 blkgrp_othrace  <- blkgrp_race %>% 
-  filter(variable %in% c("B03002_007", "B03002_008")) %>% # includes Native Hawaiian and Other Pacific Islander alone and Some other race alone 
-  group_by(GEOID, NAME) %>% 
-  summarize(otE = sum(estimate),
-            otM = moe_sum(moe = moe, estimate = estimate)) %>% 
+  filter(variable == "B03002_008") %>% # removed B03002_007-Not Hispanic or Latino!!Native Hawaiian and Other Pacific Islander alone, was causing a double count
+  # filter(variable %in% c("B03002_007", "B03002_008")) %>% 
+  rename(otE = estimate,
+         otM = moe) %>% 
+  select(-variable) %>% 
   left_join(blkgrp_tot) %>% 
   mutate(othraceE = round((otE/estimate)*100, 2),
          othraceM = round((moe_prop(otE, estimate, otM, moe))*100, 2)) %>% 
@@ -464,7 +435,7 @@ blkgrp_data <- blkgrp_data_b %>%
   left_join(blkgrp_age65) 
 
 blkgrp_data <- blkgrp_data %>% 
-  mutate(year = as.character(acs_year)) %>% 
+  mutate(year = "2021") %>% 
   select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, 
          indigE, indigM, othraceE, othraceM, multiE, multiM, ltnxE, ltnxM, snapE, snapM, everything())
 
@@ -480,4 +451,4 @@ blkgrp_data %>% select_at(vars(ends_with("E"))) %>% summary()
 
 # ....................................................
 # 5. Save ----
-saveRDS(blkgrp_data, file = "data/blkgrp_data.RDS") 
+saveRDS(blkgrp_data, file = "data/blkgrp_data_2023_06.RDS") 

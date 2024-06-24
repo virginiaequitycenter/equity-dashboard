@@ -36,13 +36,11 @@ move_last <- function(DF, last_col) {
   match(c(setdiff(names(DF), last_col), last_col), names(DF))
 }
 
-# Year for tigris polygons
-year_geo <- 2022
 
 # ....................................................
 # 2. Load data ----
 # block group data
-blkgrp_data <- readRDS("data/blkgrp_data.RDS")
+blkgrp_data <- readRDS("data/blkgrp_data_2023_06.RDS") # need to use updated blkgrp_data.RDS from 6/8 update
 
 # tract level ACS
 tract_data <- readRDS("data/tract_data.RDS")
@@ -51,6 +49,8 @@ seg_tract <- readRDS("data/seg_tract.RDS")
 # county level ACS
 county_data <- readRDS("data/county_data.RDS")
 lifeexp_county <- readRDS("data/county_life_exp.RDS") 
+lifeexp_county <- lifeexp_county %>% select(-year)
+# not merging by year any longer; should probably remove from addl_county_data.R
 seg_county <- readRDS("data/seg_county.RDS")
 
 # points and polygons
@@ -58,9 +58,9 @@ parks_sf <- st_read("data/parks_OSM_sf.geojson")
 schools_sf <- st_read("data/schools_sf.geojson") # may want to segment by type (public, private)
 sabselem_sf <- st_read("data/sabselem_sf.geojson")
 sabshigh_sf <- st_read("data/sabshigh_sf.geojson")
-mcd_sf <- st_read("data/mcd_sf.geojson")
+mcd_sf <- st_read("data/mcd_sf.geojson") # as of 1/2022 (Alb not updated yet; others?)
+# other files as needed: polygons and points
 
-# other files
 ccode <- read_csv("datacode/county_codes.csv")
 ccode <- ccode[1:6,]
 ccode <- ccode %>% mutate(
@@ -69,26 +69,23 @@ ccode <- ccode %>% mutate(
   )
 region <- ccode$code # list of desired counties
 
-# Tract names
-# we only have tract names for the six-locality planning district;
-# for other surrounding counties we can leave blank, try to derive names, or choose to remove them
-
-# Option to pull from google sheet
+# Tract names 
 # gs_auth(new_user = TRUE)
 googlesheets4::gs4_deauth()
 tractname_sheet <- "https://docs.google.com/spreadsheets/d/19wl75rrOBjEqiQKMB38RSz3G9bGHxXbNUUK3x1iWfKk/edit#gid=0"
 tractnames <- googlesheets4::read_sheet(tractname_sheet, sheet = "Sheet1") 
-
-# Clean up tractnames
 tractnames <- tractnames %>%
   rename(count = locality,
          locality = locality_num)
 tractnames$GEOID <- as.character(tractnames$GEOID)
+# tractnames <- tractnames %>% 
+#   mutate(tract = substr(GEOID,6,11))
+# we only have tract names for the six-locality planning district;
+# for other surrounding counties we can leave blank, try to derive names, or choose to remove them
 
 # variable metadata/attributes
 # pretty table contains better variable labels, sources, and descriptions
-# updated sheet 6/2024
-url_sheet <- "https://docs.google.com/spreadsheets/d/1OKCa2YbqufeHTns95kQ30R4hGEOfimDPIg0CzRF97QU/edit?usp=sharing"
+url_sheet <- "https://docs.google.com/spreadsheets/d/1Fi1sHsWcYOYKL7lzgySxzlz0WqGxGwMGGoYKiYAZtTs/edit?usp=sharing"
 pretty <- googlesheets4::read_sheet(url_sheet, sheet = "acs_tract")
 pretty$goodname <- toTitleCase(pretty$description)
 
@@ -110,7 +107,7 @@ tract_data <- tract_data %>%
 
 # add tract names 
 tract_data <- tract_data %>% 
-  left_join(tractnames, by = c("GEOID" = "GEOID", "locality"= "locality", "tract"= "tract"), multiple = "all") %>%
+left_join(tractnames, by = c("GEOID" = "GEOID", "locality"= "locality", "tract"= "tract"), multiple = "all") %>%
   select(move_last(., c("state", "locality", "tract")))
 
 # add tract names to block group (temporary solution without block group names)
@@ -157,44 +154,42 @@ county_data <- county_data %>%
 # ....................................................
 # 4. Add nice county names ----
 
-# join county names to existing tract data
-tab <- tract_data %>% 
-  select(locality, NAME) %>% 
-  separate(NAME, into=c("tract","county.nice", "state"), sep="; ", remove=F) %>% 
-  mutate(county.nice = toTitleCase(county.nice))
-tab <- unique(select(tab, locality, county.nice))
+# join pretty names to existing tract data
+tab <- select(tract_data, locality, NAME)
+tab <- separate(tab, NAME,
+                into=c("tract","county.nice", "state"), sep=", ", remove=F)
 
+tab <- unique(select(tab, locality, county.nice))
 tract_data <- left_join(tract_data, tab, by="locality")
 
-# join county names to existing county data
-tab2 <- county_data %>% 
-  select(locality, NAME) %>% 
-  separate(NAME, into=c("county.nice", "state"), sep=", ", remove=F) %>% 
-  mutate(county.nice = toTitleCase(county.nice))
-tab2 <- unique(select(tab2, locality, county.nice))
+# join pretty names to existing county data
+tab2 <- select(county_data, locality, NAME)
+tab2 <- separate(tab2, NAME,
+                 into=c("county.nice", "state"), sep=", ", remove=F)
 
+tab2 <- unique(select(tab2, locality, county.nice))
 county_data <- left_join(county_data, tab2, by=c("locality"))
 
-# join county names to existing blockgroup data
-tab3 <- blkgrp_data %>% 
-  select(locality, NAME) %>%
-  separate(NAME, into=c("block.group", "tract", "county.nice", "state"), sep="; ", remove=F) %>% 
-  mutate(county.nice = toTitleCase(county.nice))
-tab3 <- unique(select(tab3, locality, county.nice))
+# join pretty names to existing blockgroup data
+tab3 <- select(blkgrp_data, locality, NAME)
+tab3 <- separate(tab3, NAME,
+                 into=c("block.group", "tract", "county.nice", "state"), sep=", ", remove=F)
 
+tab3 <- unique(select(tab2, locality, county.nice))
 blkgrp_data <- left_join(blkgrp_data, tab3, by=c("locality"))
+
 
 # ....................................................
 # 5. Add geography  ----
 # get tract polygons
-geo <- tracts(state = 'VA', county = region, year = year_geo) %>% # from tigris
+geo <- tracts(state = 'VA', county = region, year = 2022) %>% # from tigris
   rename(tr = NAME)
 
 # join coordinates to data
 tract_data_geo <- merge(geo, tract_data, by = c("GEOID"), duplicateGeoms = TRUE) # from sp -- keep all obs (full_join)
 
 # get locality polygons
-counties_geo <- counties(state = 'VA', year = year_geo) # from tigris
+counties_geo <- counties(state = 'VA', year = 2022) # from tigris
 counties_geo <- counties_geo %>% subset(COUNTYFP %in% region)
 
 # join coordinates to data
@@ -202,7 +197,7 @@ county_data_geo <- merge(counties_geo, county_data, by = "GEOID", duplicateGeoms
 names(county_data_geo)[names(county_data_geo)=="NAME.y"] <- "NAME"
 
 # get block group polygons
-blkgrp_geo <- block_groups(state = 'VA', county = region, year = year_geo) # from tigris
+blkgrp_geo <- block_groups(state = 'VA', county = region, year = 2022) # from tigris
 
 # join coordinates to data
 blkgrp_data_geo <- merge(blkgrp_geo, blkgrp_data, by = "GEOID", duplicateGeoms = TRUE) # from sp -- keep all obs (full_join)
@@ -223,7 +218,7 @@ all_data$county.nice <- toTitleCase(all_data$county.nice)
 j <- match(pretty2$varname, names(all_data))
 # remove hmda metadata until/unless county summaries are added
 # j <- j[1:86] # commented out 6/7 in favor of below set
-j <- j[c(1:75)]
+j <- j[c(1:73)]
 
 # add pretty labels, sources and about to all_data
 for(i in seq_along(j)){
@@ -251,7 +246,7 @@ unique(all_data$GEO_LEVEL)
 
 ind_bg <- all_data %>% 
   filter(GEO_LEVEL == "Block Group") %>% 
-  select(group_df$varname[c(1:39)]) %>% # indexing the list removes income by race, ahdi, and hmda vars; add back in if county summaries included
+  select(group_df$varname[c(1:38)]) %>% # indexing the list removes income by race, ahdi, and hmda vars; add back in if county summaries included
   map_lgl(~ !all(is.na(.x))) 
 
 # census tract
@@ -263,7 +258,7 @@ ind_bg <- all_data %>%
 
 ind_ct <- all_data %>% 
   filter(GEO_LEVEL == "Census Tract") %>% 
-  select(group_df$varname[c(1:39)]) %>% 
+  select(group_df$varname[c(1:38)]) %>% 
   map_lgl(~ !all(is.na(.x))) 
 
 # add indicator logicals to group_df and sort
@@ -276,7 +271,7 @@ ind_ct <- all_data %>%
 #                   ct = ind_ct[-length(ind_ct)]) %>% 
 #   arrange(group, goodname)
 
-group_df <- cbind(group_df[c(1:39),], bg = ind_bg[-length(ind_bg)], 
+group_df <- cbind(group_df[c(1:38),], bg = ind_bg[-length(ind_bg)], 
                   ct = ind_ct[-length(ind_ct)]) %>% 
   arrange(group, goodname)
 
@@ -288,7 +283,7 @@ group_df <- group_df %>% mutate(ind_name = case_when(ct == "FALSE" & bg == "FALS
                                                       ct == "TRUE" & bg == "FALSE" ~ "County, Census Tract",
                                                       ct == "TRUE" & bg == "TRUE" ~ "County, Census Tract, Block Group"))
 k <- match(group_df$varname, names(all_data))
-k <- k[c(1:39)]
+k <- k[c(1:38)]
 
 # add pretty labels, sources and about to all_data
 for(i in seq_along(k)){
@@ -319,36 +314,15 @@ source('datacode/helpers.R')
 
 
 # ....................................................
-# 7. Define color palettes & Extras ----
+# 7. Define color palettes ----
 nb.cols <- 10
 mycolors <- colorRampPalette(brewer.pal(8, "YlGnBu"))(nb.cols)
 
 # create data dictionary for download
-data_dict <- pretty2[c(1:75),] %>% 
+data_dict <- pretty2[c(1:73),] %>% 
   unique() %>%
   select(-c("description")) %>%
   rename(variable_name = varname, description = goodname)
-
-# Moved here from app.R ----
-# was not deploying on shinyapps:
-# https://stackoverflow.com/questions/61286108/error-in-cpl-transformx-crs-aoi-pipeline-reverse-ogrcreatecoordinatetrans
-all_data <- st_transform(all_data, 4326)
-all_data$pop <- as.character(all_data$totalpopE)
-counties_geo <- st_transform(counties_geo, 4326)
-# below variables for leaflet map boundary settings
-bbox <- st_bbox(counties_geo) %>% as.vector()
-cville_geo <- counties_geo %>% filter(NAME == "Charlottesville")
-
-fewpal <- c("#7DC462", "#0D95D0", "#E72F52", "#774FA0", "#EFB743", "#D44627")
-
-# current variable that can't tercile at given geo levels
-# For future developement: asianE and snapE can do median split at block level,
-# but indigE, othraceE still have too many zeros at both tract and block for median split. 
-# not available at census tract: indigE, othraceE; 
-no_tercile_tract <- c("indigE", "othraceE")
-# not avail at block group: indigE, othraceE, asianE, snapE 
-no_tercile_block <- c("indigE", "othraceE", "asianE", "snapE")
-
   
 # ....................................................
 # 8. Save for app ----
@@ -356,15 +330,13 @@ no_tercile_block <- c("indigE", "othraceE", "asianE", "snapE")
 save(counties_geo, counties, all_data, mycolors, 
      parks_sf, schools_sf, sabselem_sf, mcd_sf, group_df,
      ind_choices,
-     helpers, data_dict, bbox, cville_geo, fewpal,
-     no_tercile_tract, no_tercile_block,
+     helpers, data_dict,
      file = "data/app_data_2023_06.Rdata")
 # load("data/app_data_2022.Rdata")
 
 save(counties_geo, counties, all_data, mycolors, 
      parks_sf, schools_sf, sabselem_sf, mcd_sf, group_df,
      ind_choices,
-     helpers, data_dict, bbox, cville_geo, fewpal,
-     no_tercile_tract, no_tercile_block,
+     helpers, data_dict,
      file = "cville-region/www/app_data.Rdata")
 
