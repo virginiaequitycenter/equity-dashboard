@@ -2,7 +2,8 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Combine data for shiny app
-# Last updated: 06/08/2023
+# Last updated: 05/20/2025
+# update: 06/08/2023
   # fixed block group/tract names and removed HDI measures from current iteration, other updates for needed for app
 # update: 03/08/2023
   # updated pretty table source sheet: https://docs.google.com/spreadsheets/d/1Fi1sHsWcYOYKL7lzgySxzlz0WqGxGwMGGoYKiYAZtTs/edit?usp=sharing
@@ -37,7 +38,7 @@ move_last <- function(DF, last_col) {
 }
 
 # Year for tigris polygons
-year_geo <- 2022
+year_geo <- 2023
 
 # ....................................................
 # 2. Load data ----
@@ -87,7 +88,7 @@ tractnames$GEOID <- as.character(tractnames$GEOID)
 
 # variable metadata/attributes
 # pretty table contains better variable labels, sources, and descriptions
-# updated sheet 6/2024
+# updated sheet 5/2025
 url_sheet <- "https://docs.google.com/spreadsheets/d/1OKCa2YbqufeHTns95kQ30R4hGEOfimDPIg0CzRF97QU/edit?usp=sharing"
 pretty <- googlesheets4::read_sheet(url_sheet, sheet = "acs_tract")
 pretty$goodname <- toTitleCase(pretty$description)
@@ -358,7 +359,7 @@ save(counties_geo, counties, all_data, mycolors,
      ind_choices,
      helpers, data_dict, bbox, cville_geo, fewpal,
      no_tercile_tract, no_tercile_block,
-     file = "data/app_data_2023_06.Rdata")
+     file = "data/app_data_2025_05.Rdata")
 # load("data/app_data_2022.Rdata")
 
 save(counties_geo, counties, all_data, mycolors, 

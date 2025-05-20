@@ -2,7 +2,7 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Acquire School geometry data
-# Last updated: 06/13/24 
+# Last updated: 05/20/25 
 # From NCES 
 # * https://nces.ed.gov/programs/edge/Geographic/SchoolLocations
 #
@@ -37,8 +37,8 @@ options(timeout = max(1080, getOption("timeout")))
 if (!dir.exists("data/tempdata")){
   dir.create("data/tempdata")}
 
-# public schools -- updated public schools as of 06/2024 are from 2022-2023 school year
-download.file(url = "https://nces.ed.gov/programs/edge/data/EDGE_GEOCODE_PUBLICSCH_2223.zip", 
+# public schools -- updated public schools as of 05/2025 are from 2023-2024 school year
+download.file(url = "https://nces.ed.gov/programs/edge/data/EDGE_GEOCODE_PUBLICSCH_2324.zip", 
               destfile = "data/tempdata/public_schools.zip") # public school data file 
 unzip(zipfile = "data/tempdata/public_schools.zip", exdir = "data/tempdata/public_schools")
 
@@ -49,7 +49,7 @@ pubschools_sf = st_read(dsn = "data/tempdata/public_schools/Shapefiles_SCH/EDGE_
 # Bounding box:  xmin: -176.6403 ymin: -14.34892 xmax: 145.7844 ymax: 71.30034
 # Geodetic CRS:  NAD83
 
-# private schools -- updated private schools as of 06/2024 are from 2021-2022 school year (no 2022/23 data available)
+# private schools -- updated private schools as of 05/2025 are from 2021-2022 school year (no 2022/23 or 2023/24 data available)
 download.file(url = "https://nces.ed.gov/programs/edge/data/EDGE_GEOCODE_PRIVATESCH_2122.zip",
               destfile = "data/tempdata/private_schools.zip")
 unzip(zipfile = "data/tempdata/private_schools.zip", exdir = "data/tempdata/private_schools")
@@ -62,7 +62,7 @@ privschools_sf = st_read(dsn = "data/tempdata/private_schools/EDGE_GEOCODE_PRIVA
 # Geodetic CRS:  NAD83
 
 
-# As of 06/13/24, the school boundaries are still from 2015-2016
+# As of 05/2025, the school boundaries are still from 2015-2016
 # get school attendance boundaries: https://nces.ed.gov/programs/edge/SABS
 # Details: https://nces.ed.gov/pubs2015/2015118.pdf
 url <- "https://nces.ed.gov/programs/edge/data/SABS_1516.zip"

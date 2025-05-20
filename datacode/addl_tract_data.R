@@ -2,10 +2,10 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Acquire Additional Tract-Level data: for post-2020 census tracts
-# Last updated: 5/17/2024
+# Last updated: 5/20/2025
 # * Segregation measures (from ACS data, but with more derivation)
 # * Small-area life expectancy estimates
-#    - New data has not been published since the 2010-2015 estimates (last checked 5/17/2024)
+#    - New data has not been published since the 2010-2015 estimates (last checked 5/20/2025)
 #
 # Geography: Tracts in Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene 
@@ -28,7 +28,7 @@ ccode <- ccode[1:6,] # just brhd/tjpd
 region <-ccode$code # list of desired counties
 
 # ACS year
-acs_year <- 2022
+acs_year <- 2023
 
 # ....................................................
 # 2. Segregation measures ----

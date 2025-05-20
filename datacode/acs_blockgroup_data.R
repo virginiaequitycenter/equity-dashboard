@@ -2,8 +2,8 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Acquire ACS data
-# Last updated: 5/16/2024
-  # Updated for ACS 2018-2022
+# Last updated: 5/7/2025
+  # Updated for ACS 2019-2023
 # Metrics from ACS (in common with locality level): 
 # * Total population
 # * Poverty, child poverty 
@@ -16,7 +16,7 @@
 # * Median personal earnings
 # * Net school enrollment
 #
-# Based on: ACS 2018-2022 
+# Based on: ACS 2019-2023 
 # Geography: Block groups in Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene 
 #     Louisa, Fluvanna, Nelson,
@@ -43,7 +43,7 @@ library(tidycensus)
 # census_api_key("", install = TRUE, overwrite = TRUE) # add key
 
 # ACS year
-acs_year <- 2022
+acs_year <- 2023
 
 # Decennial year
 # dec_year <- 2020

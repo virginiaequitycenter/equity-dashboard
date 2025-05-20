@@ -2,8 +2,8 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Acquire ACS data
-# Last updated: 5/17/2024
-  # Updates include: pulling 2022 ACS data 
+# Last updated: 5/7/2025
+  # Updates include: pulling 2023 ACS data 
 # Metrics from ACS (in common with locality level): 
 # * Total population
 # * Poverty, child poverty 
@@ -16,7 +16,7 @@
 # * Median personal earnings
 # * Net school enrollment
 
-# Based on: ACS 2018-2022  
+# Based on: ACS 2019-2023  
 # Geography: Tracts in Localities in Charlottesville region
 #     Charlottesville, Albemarle, Greene 
 #     Louisa, Fluvanna, Nelson,
@@ -41,7 +41,7 @@ library(tidycensus)
 # census_api_key("", install = TRUE, overwrite = TRUE) # add key
 
 # ACS year
-acs_year <- 2022
+acs_year <- 2023
 
 # Variable view helper
 # acs_var <- load_variables(acs_year, "acs5", cache = TRUE)
@@ -82,14 +82,14 @@ metadata_var <- all_acs_meta()
 ##  - Percent high school graduate or higher -- S1501_C02_014
 ##  - Percent bachelor's degree or higher -- S1501_C02_015
 ##  - Percent graduate degree or higher -- S1501_C02_013
-##  - Percent white alone -- DP05_0079P
-##  - Percent black or African American alone -- DP05_0080P
-##  - Percent American Indian and Alaska Native alone -- DP05_0081P
-##  - Percent Asian alone -- DP05_0082P
-##  - Percent Native Hawaiian and Other Pacific Islander alone -- DP05_0083P
-##  - Percent Some other race alone -- DP05_0084P
-##  - Percent Two or more races -- DP05_0085P
-##  - Percent Hispanic or Latino -- DP05_0073P
+##  - Percent Not Hispanic white alone -- DP05_0082P
+##  - Percent Not Hispanic black or African American alone -- DP05_0083P
+##  - Percent Not Hispanic American Indian and Alaska Native alone -- DP05_0084P
+##  - Percent Not Hispanic Asian alone -- DP05_0085P
+##  - Percent Not Hispanic Native Hawaiian and Other Pacific Islander alone -- DP05_0086P
+##  - Percent Not Hispanic Some other race alone -- DP05_0087P
+##  - Percent Not Hispanic Two or more races -- DP05_0088P
+##  - Percent Hispanic or Latino -- DP05_0076P
 ##  - Percent unemployment (Population 16 and over) -- S2301_C04_001
 ##  - Percent with health insurance (Civilian noninstitutionalized population) -- S2701_C03_001	
 ##  - Percent with public health insurance (Civilian noninstitutionalized population) -- S2704_C03_001
@@ -290,43 +290,43 @@ tract_age65 <- tract_age %>%
 #             but other race and native hawaiian/pacific islander combined
 #             due to very small values
 tract_white <- tract_race %>% 
-  filter(variable == "DP05_0079P") %>% 
+  filter(variable == "DP05_0082P") %>% 
   rename(whiteE = estimate,
          whiteM = moe) %>% 
   select(-variable)
 
 tract_black <- tract_race %>% 
-  filter(variable == "DP05_0080P") %>% 
+  filter(variable == "DP05_0083P") %>% 
   rename(blackE = estimate,
          blackM = moe) %>% 
   select(-variable)
 
 tract_indig <- tract_race %>% 
-  filter(variable == "DP05_0081P") %>% 
+  filter(variable == "DP05_0084P") %>% 
   rename(indigE = estimate,
          indigM = moe) %>% 
   select(-variable)
 
 tract_asian <- tract_race %>% 
-  filter(variable == "DP05_0082P") %>% 
+  filter(variable == "DP05_0085P") %>% 
   rename(asianE = estimate,
          asianM = moe) %>% 
   select(-variable)
 
 tract_othrace <- tract_race %>% 
-  filter(variable %in% c("DP05_0083P", "DP05_0084P")) %>% 
+  filter(variable %in% c("DP05_0086P", "DP05_0087P")) %>% # Native Hawaiian and Other Pacific Islander alone & Some other Race
   group_by(GEOID, NAME) %>% 
   summarize(othraceE = sum(estimate),
             othraceM = moe_sum(moe = moe, estimate = estimate))
 
 tract_multi <- tract_race %>% 
-  filter(variable == "DP05_0085P") %>% 
+  filter(variable == "DP05_0088P") %>% 
   rename(multiE = estimate,
          multiM = moe) %>% 
   select(-variable)
 
 tract_ltnx <- tract_race %>% 
-  filter(variable == "DP05_0073P") %>% 
+  filter(variable == "DP05_0076P") %>% 
   rename(ltnxE = estimate,
          ltnxM = moe) %>% 
   select(-variable)

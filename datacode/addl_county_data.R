@@ -2,7 +2,7 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Acquire Additional County-Level data
-# Last updated: 5/17/2024
+# Last updated: 5/20/2025
 # Metrics from various sources: 
 # * Life Expectancy Estimates: https://www.countyhealthrankings.org/explore-health-rankings/virginia/data-and-resources
 # * Segregation measures (from ACS data, but with more derivation)
@@ -30,7 +30,7 @@ ccode <- ccode[1:6,]
 region <- ccode$code # list of desired counties
 
 # ACS year
-acs_year <- 2022
+acs_year <- 2023
 
 # ....................................................
 # 2. Small-area life expectancy estimates ----
@@ -45,12 +45,13 @@ if (!dir.exists("data/tempdata")){
 # url <- "https://www.countyhealthrankings.org/sites/default/files/media/document/2021%20County%20Health%20Rankings%20Virginia%20Data%20-%20v1_0.xlsx" # 2021
 # url <- "https://www.countyhealthrankings.org/sites/default/files/media/document/2022%20County%20Health%20Rankings%20Virginia%20Data%20-%20v1.xlsx" # 2022
 # url <- "https://www.countyhealthrankings.org/sites/default/files/media/document/2023%20County%20Health%20Rankings%20Virginia%20Data%20-%20v3.xlsx" # 2023
-url <- "https://www.countyhealthrankings.org/sites/default/files/media/document/2024_county_health_release_virginia_data_-_v1.xlsx" # 2024
+# url <- "https://www.countyhealthrankings.org/sites/default/files/media/document/2024_county_health_release_virginia_data_-_v1.xlsx" # 2024
+url <- "https://www.countyhealthrankings.org/sites/default/files/media/document/2025_county_health_rankings_virginia_data_-_v1.xlsx"
 
-download.file(url, destfile="data/tempdata/countyhealthrankings2024.xlsx", method="libcurl")
+download.file(url, destfile="data/tempdata/countyhealthrankings2025.xlsx", method="libcurl")
 
 # read data
-life_exp <- read_excel("data/tempdata/countyhealthrankings2024.xlsx", sheet = "Additional Measure Data", skip = 1)
+life_exp <- read_excel("data/tempdata/countyhealthrankings2025.xlsx", sheet = "Additional Measure Data", skip = 1)
 
 # b. reduce (consider using more from this source), rename, derive
 # race column names updated in 2024 data

@@ -2,7 +2,7 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Acquire Park geometry data
-# Last updated: 5/17/2024
+# Last updated: 5/20/2025
   # - Updated year for tract bounds, and increased timeout for osm function opq(), but otherwise
   #   no changes to process
 # Data from Open Street Map using the osm package
@@ -29,7 +29,7 @@ ccode <- read_csv("datacode/county_codes.csv")
 ccode <- ccode[1:6,]
 region <- ccode$code # list of desired counties
 
-tract_year <- 2023
+tract_year <- 2024
 
 cville_bounds <- tracts(state = 'VA', 
                         county = region, 

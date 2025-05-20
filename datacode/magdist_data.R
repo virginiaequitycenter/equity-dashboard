@@ -2,9 +2,9 @@
 # Greater Charlottesville Regional Equity Atlas
 ####################################################
 # Acquire Magisterial District geometry data
-# Last updated: 5/17/2024
-#  - updated to 2023 TIGER/Line shapefiles
-#  - https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.2023.html#list-tab-790442341
+# Last updated: 5/20/2025
+#  - updated to 2024 TIGER/Line shapefiles
+#  - https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.2024.html#list-tab-790442341
 # From Tigris
 #
 # Geography: Magesterial Districts in Charlottesville region
@@ -35,7 +35,7 @@ region <- ccode$code # list of desired counties
 # pull county subdivisions and reduce to region
 mcd <- county_subdivisions(state = "VA", 
                            county = region, 
-                           year = "2023")
+                           year = "2024")
 
 # ....................................................
 # 3. Check and transform ----

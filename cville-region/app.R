@@ -1,10 +1,13 @@
 # Published version
 # Cville Region Equity Atlas Dashboard
-# Last Updated: 6/14/2024
+# Last updated: 5/20/2025
+  # fixed download csv -removed year filter
+# update: 6/14/2024
   # Removed year argument from md() - only one year should be present in all_data
-  # Update all dashboard styling to bslib defaults, to avoid future conflicts with bootstrap updats
+  # Update all dashboard styling to bslib defaults, to avoid future conflicts with bootstrap updates
   # Moved data prep to combine_data.R
-# Last Deployed: 6/24/2024
+# Last Deployed: 5/20/2025
+  # Deployed to both cville-region and cville_equity_atlas
 
 library(shiny)
 library(bslib)
@@ -22,26 +25,6 @@ library(stringi) # for tercile plots
 # Load Data ---------------------------------------------------------------
 
 load("www/app_data.Rdata")
-
-# Below moved to combine_data.R
-# # was not deploying on shinyapps:
-# # https://stackoverflow.com/questions/61286108/error-in-cpl-transformx-crs-aoi-pipeline-reverse-ogrcreatecoordinatetrans
-# all_data <- st_transform(all_data, 4326)
-# all_data$pop <- as.character(all_data$totalpopE)
-# counties_geo <- st_transform(counties_geo, 4326)
-# # below variables for leaflet map boundary settings
-# # bbox <- st_bbox(counties_geo) %>% as.vector() # not needed
-# cville_geo <- counties_geo %>% filter(NAME == "Charlottesville")
-# 
-# fewpal <- c("#7DC462", "#0D95D0", "#E72F52", "#774FA0", "#EFB743", "#D44627")
-# 
-# # current variable that can't tercile at given geo levels
-# # For future developement: asianE and snapE can do median split at block level,
-# # but indigE, othraceE still have too many zeros at both tract and block for median split. 
-# # not available at census tract: indigE, othraceE; 
-# no_tercile_tract <- c("indigE", "othraceE")
-# # not avail at block group: indigE, othraceE, asianE, snapE 
-# no_tercile_block <- c("indigE", "othraceE", "asianE", "snapE")
 
 # Define UI ---------------------------------------------------------------
 ui <-  
@@ -211,7 +194,7 @@ ui <-
               icon = icon('at'),
               value = "tab5",
               br(), h2("Citation"),
-              p("The Equity Center, Equitable Analysis Initiative; \"Charlottesville Regional Equity Dashboard;\" UVA Karsh Institute of Democracy Center for the Redress of Inequity Through Community-Engaged Scholarship; Accessed ", Sys.Date(), "; https://equityatlas.virginiaequitycenter.org/dashboards/cville-equity-dashboard/"),
+              p("\"Charlottesville Regional Equity Dashboard\"; Center for Community Partnerships, University of Virginia; Accessed ", Sys.Date(), "; https://equityatlas.virginiaequitycenter.org/dashboards/cville-equity-dashboard/"),
               br(), br(),
               h3("Charlottesville Equity Atlas"),
               p("For more tools and reports focused on regional equity measures:"),
@@ -772,14 +755,11 @@ server <- function(input, output, session) {
       print(tempdir())
       
       fs <- c("regional_atlas_county.csv", "regional_atlas_census_tract.csv", "regional_atlas_block_groups.csv", "variable_dictionary.csv")
-      write.csv(all_data %>% filter(GEO_LEVEL == "County" &
-                                      year == "2021") %>% st_drop_geometry(), 
+      write.csv(all_data %>% filter(GEO_LEVEL == "County") %>% st_drop_geometry(), 
                 file = "regional_atlas_county.csv", sep =",")
-      write.csv(all_data %>% filter(GEO_LEVEL == "Census Tract" &
-                                      year == "2021") %>% st_drop_geometry(), 
+      write.csv(all_data %>% filter(GEO_LEVEL == "Census Tract") %>% st_drop_geometry(), 
                 file = "regional_atlas_census_tract.csv", sep =",")
-      write.csv(all_data %>% filter(GEO_LEVEL == "Block Group" &
-                                      year == "2021") %>% st_drop_geometry(), 
+      write.csv(all_data %>% filter(GEO_LEVEL == "Block Group") %>% st_drop_geometry(), 
                 file = "regional_atlas_block_groups.csv", sep =",")
       write.csv(data_dict, file = "variable_dictionary.csv", sep = ",")
       print (fs)
