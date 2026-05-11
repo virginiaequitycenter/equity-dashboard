@@ -1,0 +1,475 @@
+---
+title: "Charlottesville Regional Equity Dashboard Update Workflow"
+output: html_document
+---
+Set up for RMD file
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load libraries
+Additional packages may be included in other R script sources.
+```{r}
+# Libraries
+library(tidycensus)
+library(tidyverse)
+library(sf)
+library(janitor)
+library(readxl)
+```
+
+## Set variables
+```{r}
+# Current year for dashboard release
+dyr <- 2026
+# Most current ACS year
+acsyr <- 2024
+
+# County FIPS codes
+# BRHD: Albemarle, Charlottesville, Fluvanna, Greene, Louisa, Nelson
+fips_codes <- c("003", "540", "065", "079", "109", "125")
+
+# Update to most recent TIGER/Line Shapefiles
+# https://www.census.gov/geographies/mapping-files.html
+tigeryr <- 2025
+
+```
+
+## Set file paths for saving data
+These file paths assume the current working directory is the directory where this parent file lives. Check with `getwd()` and set with `setwd()`.
+```{r}
+# Check and create data_sources folder if does not exist
+if (!dir.exists("data")){
+  dir.create("data", recursive = TRUE)}
+
+# File path for data folder
+filepath_data <- "data/2026_update/"
+
+# File path for final app data
+filepath_app <- "cville-region/www/"
+
+```
+
+# Data Sources
+
+## ACS 5-yr survey data
+
+### Set Census API Key
+A key can be obtained from <http://api.census.gov/data/key_signup.html>. This typically only needs to be set once: `install = TRUE`, will install the key in your .Renviron file for use in future sessions. Do not save this file in a public or shared location with your individual API key included in the code below.
+```{r}
+# If API key has not been previously installed, add API key inside the quotes and uncomment the line below to run. 
+# census_api_key("YOUR KEY GOES HERE", install = TRUE)
+```
+
+### Review ACS table codes and variables
+Review ACS table variables if needed.
+```{r}
+# Uncomment below as needed. 
+vars_acs <- load_variables(acsyr, "acs5", cache = TRUE)
+vars_subject <- load_variables(acsyr, "acs5/subject", cache = TRUE)
+vars_profile <- load_variables(acsyr, "acs5/profile", cache = TRUE)
+```
+
+### Get and Clean ACS5 data
+
+* Check variable codes for DP05 table race/ethnicity in `vars_profile` above (often changes).
+```{r, results='hide'}
+source('scripts/acs5-county-data.R')
+source('scripts/acs5-tract-data.R')
+source('scripts/acs5-blockgroup-data.R')
+```
+
+### Check
+```{r, results='hide'}
+county_data %>% select_at(vars(ends_with("E"))) %>% summary()
+tract_data %>% select_at(vars(ends_with("E"))) %>% summary()
+blkgrp_data %>% select_at(vars(ends_with("E"))) %>% summary()
+```
+
+## Additional county and tract-level data
+
+### County-level ALICE
+* Get Virginia ALICE data: https://www.unitedforalice.org/county-reports/virginia
+
+Before running script, update url and filename for current ALICE data
+```{r}
+source('scripts/alice-county-data.R')
+```
+
+### County-level life expectancy
+* Life Expectancy Estimates: https://www.countyhealthrankings.org/explore-health-rankings/virginia/data-and-resources
+
+Before running script, update url and filename for current County Health Rankings life expectancy data
+```{r}
+source('scripts/life-exp-county-data.R')
+```
+
+### County and Tract-level Segregation data
+* Segregation measures (from ACS data, but with more derivation)
+
+```{r}
+source('scripts/seg-county-tract-data.R')
+```
+
+## Magisterial District geometry data
+```{r}
+source('scripts/magdist-data.R')
+
+# Check
+ggplot() + 
+  geom_sf(data=mcd_sf, color="black", fill="white", size=0.25)
+```
+
+## School District data
+From NCES: https://nces.ed.gov/programs/edge/Geographic/SchoolLocations
+
+Update urls before running. 
+For Private/Public School URLS:
+(1) Go to: https://nces.ed.gov/programs/edge/Geographic/SchoolLocations
+(2) Find most recent year for public and private schools
+(3) Right click each file link and select `copy link`
+(4) Paste results into associated url below
+
+For School Boundaries:
+(1) Go to: https://nces.ed.gov/programs/edge/SABS
+(2) Find most recent year for school boundaries
+(3) Right click Single Shapefile link and select `copy link`
+(4) Paste results into associated url below
+```{r}
+# public schools - updated public schools as of 4/2026 are from 2024-2025 school year
+urlpublic <- "https://nces.ed.gov/programs/edge/data/EDGE_GEOCODE_PUBLICSCH_2425.zip"
+
+# private schools - updated private schools as of 4/46 are from 2023/24 school year
+urlprivate <- "https://nces.ed.gov/programs/edge/data/EDGE_GEOCODE_PRIVATESCH_2324.zip"
+
+# School boundaries - As of 4/26, the school boundaries are still from 2015-2016
+# These take a long time to download - comment out in script if you did this in a previous year and still have the data
+urlboundaries <- "https://nces.ed.gov/programs/edge/data/SABS_1516.zip"
+
+source('scripts/schools-data.R')
+```
+
+## Parks Data - OpenStreet Map
+
+```{r}
+source('scripts/parks-osm-data.R')
+
+# view
+leaflet(cville_bounds) %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  addPolygons(weight = 1, fill = 0, color = "black") %>% 
+  addCircles(data = st_collection_extract(parks, "POINT"), color = "blue",
+             popup = st_collection_extract(parks, "POINT")$name) %>% 
+  addPolygons(data = st_collection_extract(parks, "POLYGON"), color = "orange",
+              popup = st_collection_extract(parks, "POLYGON")$name)
+
+```
+
+
+# Prepare data for Dashboard
+
+## Update Metadata
+
+### Data Sources
+Review the below Excel workbook `prettytable_data_sources.xlsx` saved in `data/` and update the following:
+* Source column in each sheet to reflect current ACS 5-year survey and Accessed Data (use Find & Replace)
+* In County sheet, update source and about info for Life Expectancy data
+
+```{r}
+# Read in data sources workbook sheets
+metadata <- read_excel("data/prettytable_data_sources.xlsx", sheet = "acs_county")
+metadata$label <- metadata$description
+
+# metadata$label <- str_to_title(metadata$description)
+
+# metadata_tract <- read_excel("data/prettytable_data_sources.xlsx", sheet = "acs_tract")
+# metadata_tract$label <- str_to_title(metadata_tract$description)
+# 
+# metadata_blkgrp <- read_excel("data/prettytable_data_sources.xlsx", sheet = "acs_blockgroup")
+# metadata_blkgrp$label <- str_to_title(metadata_blkgrp$description)
+```
+
+### Regional Tractnames
+```{r, results='hide'}
+# Read in Regional Tract names csv
+tractnames <- read_csv("data/regional_tractnames.csv")
+
+# Clean up tractnames
+tractnames <- tractnames %>%
+  mutate(GEOID = as.character(GEOID)) %>% 
+  rename(coname = locality,
+         locality = locality_num)
+```
+
+## Load data 
+Uncomment if not in current environment
+```{r}
+# ACS Data
+county_data <- read_rds(paste0(filepath_data, "acs5_county.RDS"))
+tract_data <- read_rds(paste0(filepath_data, "acs5_tract.RDS"))
+blkgrp_data <- read_rds(paste0(filepath_data, "acs5_blockgroup.RDS"))
+
+# Additional data
+alice <- read_rds(paste0(filepath_data, "alice.RDS"))
+life_exp <- read_rds(paste0(filepath_data, "county_life_exp.RDS"))
+seg_county <- read_rds(paste0(filepath_data, "seg_county.RDS"))
+seg_tract <- read_rds(paste0(filepath_data, "seg_tract.RDS"))
+
+# Points and Polygons
+mcd_sf <- st_read(paste0(filepath_data, "mcd_sf.geojson"))
+schools_sf <- st_read(paste0(filepath_data, "schools_sf.geojson"))
+sabselem_sf <- st_read(paste0(filepath_data, "sabselem_sf.geojson"))
+sabshigh_sf <- st_read(paste0(filepath_data, "sabshigh_sf.geojson"))
+parks_sf <- st_read(paste0(filepath_data, "parks_OSM_sf.geojson"))
+```
+
+## Merge data
+```{r}
+# Merge tract & block group data ----
+
+# add segregation measures by tract
+tract_data <- tract_data %>% 
+  left_join(seg_tract, by = c("locality" = "county", "tract" = "tract")) %>% 
+  relocate(c("state", "locality", "tract"), .after = last_col())
+
+# add tract names 
+tract_data <- tract_data %>% 
+  left_join(tractnames, by = c("GEOID" = "GEOID", "locality"= "locality", "tract"= "tract"), multiple = "all") %>%
+  relocate(c("state", "locality", "tract"), .after = last_col())
+
+# add tract names to block group
+blkgrp_data <- blkgrp_data %>% 
+  left_join(tractnames %>% select(-GEOID), by = c("locality"= "locality", "tract"= "tract"), multiple = "all") %>% 
+  relocate(c("state", "locality", "tract", "blockgroup"), .after = last_col())
+
+# Merge county data ----
+
+# add life expectancy by county
+county_data <- county_data %>% 
+  left_join(life_exp, by = c("GEOID" = "GEOID", "locality"= "locality")) %>% 
+  relocate(c("coname", "state", "locality"), .after = last_col())
+
+# add segregation measures by county
+county_data <- county_data %>% 
+  left_join(seg_county, by = c("locality" = "county", "year" = "year")) %>% 
+  relocate(c("coname", "state", "locality"), .after = last_col())
+
+# add ALICE data by county
+county_data <- county_data %>% 
+  left_join(alice, by = c("GEOID" = "GEOID", "locality"= "locality", "coname" = "coname")) %>% 
+  relocate(c("coname", "state", "locality"), .after = last_col())
+
+```
+
+## Add Geography 
+```{r}
+library(tigris)
+options(tigris_use_cache = TRUE)
+library(rmapshaper)
+
+# get locality polygons
+counties_geo <- counties(state = 'VA', year = tigeryr) %>% 
+  subset(COUNTYFP %in% fips_codes) %>% 
+  select(-NAME) %>% 
+  ms_simplify(keep = .7, keep_shapes = TRUE) %>%
+  sf::st_collection_extract()
+
+# join coordinates to data
+county_data_geo <- merge(county_data, counties_geo, by = "GEOID", duplicateGeoms = TRUE) # keep all obs (full_join)
+
+# get tract polygons
+tract_geo <- tracts(state = 'VA', county = fips_codes, year = tigeryr) %>% 
+  rename(tr = NAME) %>% 
+  ms_simplify(keep = .7, keep_shapes = TRUE) %>%
+  sf::st_collection_extract()
+
+# join coordinates to data
+tract_data_geo <- merge(tract_data, tract_geo, by = c("GEOID"), duplicateGeoms = TRUE) # keep all obs (full_join)
+
+# get block group polygons
+blkgrp_geo <- block_groups(state = 'VA', county = fips_codes, year = tigeryr) %>%  # from tigris
+  ms_simplify(keep = .7, keep_shapes = TRUE) %>%
+  sf::st_collection_extract()
+
+# join coordinates to data
+blkgrp_data_geo <- merge(blkgrp_data, blkgrp_geo,  by = "GEOID", duplicateGeoms = TRUE) # keep all obs (full_join)
+
+# combine into one data frame
+all_data <- bind_rows("County" = county_data_geo, 
+                      "Census Tract" = tract_data_geo,
+                      "Block Group" = blkgrp_data_geo, 
+                      .id = "GEO_LEVEL") %>% 
+  select("GEOID","NAME","year","totalpopE","totalpopM",
+         "whiteE","whiteM","blackE","blackM","asianE","asianM",
+         "indigE","indigM","othraceE","othraceM","multiE","multiM","hispE","hispM",
+         "povrateE","povrateM","cpovrateE","cpovrateM","hhincE","hhincM",  "hsmoreE","hsmoreM", "bamoreE",
+         "bamoreM", "gradmoreE","gradmoreM","unempE","unempM",  "hlthinsE","hlthinsM","pubinsE","pubinsM",
+         "earnE","earnM",   "disabledE","disabledM","giniE","giniM",   "vachseE","vachseM", "allhseE",
+         "allhseM", "snapE","snapM",   "foreignbE","foreignbM","renter30E","renter30M","homeownE",
+         "homeownM","vacrateE","vacrateM","perc_snaphseE","perc_snaphseM","perc_forbE","perc_forbM", "schlE",
+         "schlM",   "age17E","age17M",  "age24E","age24M",  "age64E","age64M",  "age65E","age65M",
+         "hhinc_blackE","hhinc_blackM","hhinc_asianE","hhinc_asianM","hhinc_multiE","hhinc_multiM",
+         "hhinc_whiteE","hhinc_whiteM","hhinc_hispE","hhinc_hispM","lifeexpE","lifeexpM","lifeexp_hispE",
+         "lifeexp_hispM","lifeexp_asianE","lifeexp_asianM","lifeexp_blackE","lifeexp_blackM","lifeexp_whiteE",
+         "lifeexp_whiteM","dissim_wb","dissim_wh","inter_bw","inter_hw","iso_b","iso_h",   
+         "poverty_households","alice_households","above_alice_households","alice_threshold_hh_under_65",   
+         "alice_threshold_hh_65_years_and_over","per_poverty_households", 
+         "per_alice_households","per_above_alice_households","coname", "state","locality", everything()   
+  ) %>% 
+  st_as_sf()
+
+```
+
+## Create attributes
+```{r}
+
+# match metadata to data
+j <- match(metadata$varname, names(all_data))
+
+# add label, sources and about to all_data
+for(i in seq_along(j)){
+  attr(all_data[[j[i]]], which = "label") <- metadata$label[i]
+  attr(all_data[[j[i]]], which = "source") <- metadata$source[i]
+  attr(all_data[[j[i]]], which = "about") <- metadata$about[i]
+}
+
+# create data frame of group and varnames
+group_df <- metadata %>% 
+  select(varname, group, label) %>% 
+  filter(!is.na(group))
+# categories <- unique(group_df$group)
+
+# Create indicator lists based on geography
+unique(all_data$GEO_LEVEL)
+# [1] "County"       "Block Group"  "Census Tract"
+
+# Block group
+ind_bg <- all_data %>% 
+  filter(GEO_LEVEL == "Block Group") %>%
+  select(group_df$varname)  %>% 
+  st_drop_geometry() %>% 
+  map_lgl(~ !all(is.na(.x))) 
+
+# Census tract
+ind_ct <- all_data %>% 
+  filter(GEO_LEVEL == "Census Tract") %>% 
+  select(group_df$varname)  %>% 
+  st_drop_geometry() %>% 
+  map_lgl(~ !all(is.na(.x))) 
+
+# Add indicator logicals to group_df and sort
+# column bg - TRUE if variable available for Block Group
+# column ct - TRUE if variable available for Census Tract
+# all vars available for County
+
+group_df <- cbind(group_df, ct = ind_ct, bg = ind_bg) %>% 
+  arrange(group)
+
+# Create cases for app interface
+group_df <- group_df %>% 
+  mutate(ind_name = case_when(ct == "FALSE" & bg == "FALSE" ~ paste0(label, " (County Only)"),
+                              ct == "TRUE" & bg == "FALSE" ~ paste0(label, " (County & Tract)"),
+                              ct == "TRUE" & bg == "TRUE" ~ paste0(label, " (All Levels)")),
+         geo_level = case_when(ct == "FALSE" & bg == "FALSE" ~ "County",
+                               ct == "TRUE" & bg == "FALSE" ~ "County, Census Tract",
+                               ct == "TRUE" & bg == "TRUE" ~ "County, Census Tract, Block Group"))
+
+k <- match(group_df$varname, names(all_data))
+
+# add labels, sources and about to all_data
+for(i in seq_along(k)){
+  attr(all_data[[k[i]]], which = "geo_level") <- group_df$geo_level[i]
+}
+
+# one list of available indicators
+ind_choices <- split(group_df, group_df$group) %>% 
+  map(function(x)pull(x, varname, name = ind_name))
+
+# create list of counties
+counties <- levels(factor(county_data_geo$coname))
+```
+
+# App help features
+```{r}
+# get helpers
+source('scripts/helpers.R')
+```
+
+# Define Color Palettes and Extras
+```{r}
+library(RColorBrewer)
+
+nb.cols <- 10
+mycolors <- colorRampPalette(brewer.pal(8, "YlGnBu"))(nb.cols)
+
+# Create data dictionary for download
+data_dict <- metadata %>% 
+  unique() %>%
+  select(-c("description")) %>%
+  rename(variable_name = varname, description = label)
+
+# Moved here from app.R ----
+# was not deploying on shinyapps:
+# https://stackoverflow.com/questions/61286108/error-in-cpl-transformx-crs-aoi-pipeline-reverse-ogrcreatecoordinatetrans
+all_data$geometry <- st_transform(all_data$geometry, 4326)
+all_data$pop <- as.character(all_data$totalpopE)
+counties_geo$geometry <- st_transform(counties_geo$geometry, 4326)
+# below variables for leaflet map boundary settings
+bbox <- st_bbox(counties_geo) %>% as.vector()
+cville_geo <- counties_geo %>% filter(NAMELSAD == "Charlottesville city")
+
+fewpal <- c("#7DC462", "#0D95D0", "#E72F52", "#774FA0", "#EFB743", "#D44627")
+
+# current variable that can't tercile at given geo levels
+# For future developement: asianE and snapE can do median split at block level,
+# but indigE, othraceE still have too many zeros at both tract and block for median split. 
+# not available at census tract: indigE, othraceE; 
+no_tercile_tract <- c("indigE", "othraceE")
+# not avail at block group: indigE, othraceE, asianE, snapE 
+no_tercile_block <- c("indigE", "othraceE", "asianE", "snapE")
+
+```
+
+# Save all data for app
+```{r}
+# Save for app ----
+# create Rdata file
+save(counties_geo, counties, all_data, mycolors,
+     parks_sf, schools_sf, sabselem_sf, mcd_sf, group_df,
+     ind_choices, helpers, data_dict, bbox, cville_geo, fewpal,
+     no_tercile_tract, no_tercile_block,
+     file = paste0(filepath_data, "app_data_5_2026.Rdata"))
+
+# create data for app
+library(qs2)
+qs_save(list(counties_geo=counties_geo, counties=counties, all_data=all_data, mycolors=mycolors,
+             parks_sf=parks_sf, schools_sf=schools_sf, sabselem_sf=sabselem_sf, mcd_sf=mcd_sf,
+             group_df=group_df, ind_choices=ind_choices, helpers=helpers, data_dict=data_dict, bbox=bbox, 
+             cville_geo=cville_geo, fewpal=fewpal, no_tercile_tract=no_tercile_tract, 
+             no_tercile_block=no_tercile_block),
+        file = paste0(filepath_app, "app_data_5_26.qs2"))
+
+# app_data <- qs_read(paste0(filepath_app, "app_data_5_26.qs2"))
+# 
+# counties_geo <- app_data$counties_geo
+# counties <-  app_data$counties
+# all_data <- app_data$all_data
+# mycolors <- app_data$mycolors
+# parks_sf <- app_data$parks_sf
+# schools_sf <- app_data$schools_sf
+# sabselem_sf <- app_data$sabselem_sf
+# mcd_sf <- app_data$mcd_sf
+# group_df <- app_data$group_df
+# ind_choices <- app_data$ind_choices
+# helpers <- app_data$helpers
+# data_dict <- app_data$data_dict
+# bbox <- app_data$bbox
+# cville_geo <- app_data$cville_geo
+# fewpal <- app_data$fewpal
+# no_tercile_tract <- app_data$no_tercile_tract
+# no_tercile_block <- app_data$no_tercile_block
+
+```
+
+
+

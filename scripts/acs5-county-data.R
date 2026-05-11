@@ -1,84 +1,10 @@
-####################################################
-# Greater Charlottesville Regional Equity Atlas
-####################################################
-# Acquire ACS data
-# Last updated: 5/7/2025
-  # Updates include: pulling 2023 ACS data, updated DP05 codes, add disability
-# Metrics from ACS (in common with tract level): 
-# * Total population
-# * Poverty, child poverty 
-# * Median HH Income, Gini income inequality index
-# * Educational attainment: HS and more, BA and more
-# * Unemployment 
-# * Health insurance, and Public health insurance
-# * Race/ethnicity: White (NH), Black, Asian, Hispanic, Indigenous, Multiracial, Other
-# * Age groups: 0-17, 18-24, 25-64, 65 or more
-# * Median personal earnings
-# * Net school enrollment
-# * Foreign-born
-# * Disability
-#
-# Metrics specific to locality level (from Decennial or ACS):
-# * Median HH Income by Race/Ethnicity
-# 
-# Based on: ACS 2019-2023 
-# Geography: Localities in Charlottesville region
-#     Charlottesville, Albemarle, Greene 
-#     Louisa, Fluvanna, Nelson,
-####################################################
-# 1. Load libraries, provide api key (if needed), identify variables
-# 2. Define variables, pull data
-# 3. Metrics specific to locality level 
-# 4. Reduce, derive estimates, combine
-# 5. Summarize/Examine
-# 6. Save
-####################################################
+# Get ACS5 5-year survey data - County Level
+# Last updated: 4/9/2026
 
-# ....................................................
-# 1. Load libraries, provide api key (if needed), identify variables ----
+# This script gets and cleans ACS5 data for a single survey year. 
+# The resulting file is saved as `acs5_county.RDS`. 
 
-# Load libraries
-library(tidyverse)
-library(tidycensus)
-
-
-# Census api key
-# census_api <- Sys.getenv("CENSUS_API_KEY")
-# census_api_key("", install = TRUE, overwrite = TRUE) # add key
-
-# ACS year
-acs_year <- 2023
-
-# Variable view helper
-# acs_var <- load_variables(acs_year, "acs5", cache = TRUE)
-# acs_var <- load_variables(acs_year, "acs5/subject", cache = TRUE)
-# acs_var <- load_variables(acs_year, "acs5/profile", cache = TRUE)
-
-# Variable view helper
-all_acs_meta <- function(){
-  # Gets the list of all variables from all acs5 metadata tables
-  vars1 <- load_variables(acs_year, "acs5", cache = TRUE) %>% select(-geography)
-  vars2 <- load_variables(acs_year, "acs5/subject", cache = TRUE)
-  vars3 <- load_variables(acs_year, "acs5/profile", cache = TRUE)
-  
-  # Provides column with specific lookup
-  vars1$dataset_table <- "acs5"
-  vars2$dataset_table <- "acs5/subject"
-  vars3$dataset_table <- "acs5/profile"
-  
-  # Combine all table rows
-  all_vars_meta <- rbind(vars1, vars2, vars3)
-  
-  return(all_vars_meta)
-}
-
-# Pull all variable names from metadata
-metadata_var <- all_acs_meta()
-
-# View acs metadata tables
-# view(metadata_var)
-
-# Variable of interest -
+# ACS 5-yr variables included in this script:
 ##  - Total population -- B01003_001
 ##  - Poverty rate -- S1701_C03_001
 ##  - Child poverty rate -- S1701_C03_002
@@ -114,28 +40,20 @@ metadata_var <- all_acs_meta()
 ##  - Number of foreign-born residents -- B05002_013
 ##  - Number of residents who have a disability -- S1810_C02_001 - (civilian noninstitutionalized population)
 
+# Load packages ----
+library(tidyverse)
+library(tidycensus)
+library(janitor)
+
+# Create basic objects ----
+# These variables are set in dashboard-update-workflow.Rmd
+dyr <- dyr
+acsyr <- acsyr
+fips_codes <- fips_codes
+filepath_data <- filepath_data
 
 # ....................................................
-# 2. Define localities, variables, pull tables ----
-
-# List of desired localities by FIPS
-ccode <- read_csv("datacode/county_codes.csv")
-ccode <- ccode[1:6,] # BRHD localities only
-region <- ccode$code # list of desired counties
-# - 003 Albemarle County  
-# - 015 Augusta County
-# - 029 Buckingham County
-# - 540 Charlottesville
-# - 065 Fluvanna County
-# - 079 Greene County 
-# - 109 Louisa County
-# - 113 Madison County
-# - 125 Nelson County
-# - 137 Orange County
-# - 790 Staunton
-# - 820 Waynesboro
-
-# Get Data
+# Get Data - Variables ----
 # variables: define varlist
 varlist_s = c("S1701_C03_001", # povrate
               "S1701_C03_002",   # cpovrate
@@ -163,23 +81,24 @@ varlist_b = c("B01003_001", # totalpop
               "B19058_002",  # SNAP
               "B05002_013")  # Foreign-born
 
-
 # Pull variables
 county_data_s <- get_acs(geography = "county",
                         variables = varlist_s,
                         state = "VA", 
-                        county = region, 
+                        county = fips_codes, 
                         survey = "acs5",
-                        year = acs_year, 
-                        output = "wide")
+                        year = acsyr, 
+                        output = "wide",
+                        cache_table = TRUE)
 
 county_data_b <- get_acs(geography = "county",
                         variables = varlist_b,
                         state = "VA", 
-                        county = region, 
+                        county = fips_codes, 
                         survey = "acs5",
-                        year = acs_year, 
-                        output = "wide")
+                        year = acsyr, 
+                        output = "wide",
+                        cache_table = TRUE)
 
 # rename variables
 names(county_data_s) = c("GEOID", "NAME",
@@ -238,56 +157,58 @@ county_data_b <- county_data_b %>%
          perc_forbM = round(moe_prop(foreignbE, totalpopE, foreignbM, totalpopM), 2),
          .keep = "all")
 
-
-# Get Data
-# pull tables (easier to just pull tables separately)
+# Get Data - Tables ----
+# pull tables 
 county_race <- get_acs(geography = "county", 
           table = "DP05", 
           state = "VA", 
-          county = region, 
+          county = fips_codes, 
           survey = "acs5",
-          year = acs_year)
+          year = acsyr,
+          cache_table = TRUE)
 
 county_age <- get_acs(geography = "county", 
           table = "S0101", 
           state = "VA", 
-          county = region, 
+          county = fips_codes, 
           survey = "acs5",
-          year = acs_year)
+          year = acsyr,
+          cache_table = TRUE)
 
 county_enroll <- get_acs(geography = "county", 
           table = "S1401", 
           state = "VA", 
-          county = region, 
+          county = fips_codes, 
           survey = "acs5", 
-          year = acs_year)
-
+          year = acsyr,
+          cache_table = TRUE)
 
 # ....................................................
-# 3. Metrics specific to locality level  ----
+# Metrics specific to locality level  ----
 varlist_race <- c("B19013B_001",  # hhinc_black
                   "B19013D_001",  # hhinc_asion
                   "B19013G_001",  # hhinc_multi
                   "B19013H_001",  # hhinc_white
-                  "B19013I_001")  # hhinc_ltnx
+                  "B19013I_001")  # hhinc_hisp
 
 county_hhinc_race <- get_acs(geography = "county",
                              variables = varlist_race,
                              state = "VA",
-                             county = region,
+                             county = fips_codes,
                              survey = "acs5",
-                             year = acs_year,
-                             output = "wide")
+                             year = acsyr,
+                             output = "wide",
+                             cache_table = TRUE)
 
 names(county_hhinc_race) = c("GEOID", "NAME",
                          "hhinc_blackE", "hhinc_blackM",
                          "hhinc_asianE", "hhinc_asianM",
                          "hhinc_multiE", "hhinc_multiM",
                          "hhinc_whiteE", "hhinc_whiteM",
-                         "hhinc_ltnxE", "hhinc_ltnxM")
+                         "hhinc_hispE", "hhinc_hispM")
 
 # ....................................................
-# 4. Reduce and Combine data ----
+# Reduce and Combine data ----
 
 # Reduce tables: county_age, county_race, county_enroll
 # county_age: three age groups present as rows in the table,
@@ -323,45 +244,45 @@ county_age65 <- county_age %>%
 #             due to very small values
 
 county_white <- county_race %>% 
-  filter(variable == "DP05_0082P") %>% 
+  filter(variable == "DP05_0096P") %>% # white alone, not hispanic
   rename(whiteE = estimate,
          whiteM = moe) %>% 
   select(-variable)
 
 county_black <- county_race %>% 
-  filter(variable == "DP05_0083P") %>% 
+  filter(variable == "DP05_0097P") %>% # black alone not hispanic
   rename(blackE = estimate,
          blackM = moe) %>% 
   select(-variable)
 
 county_indig <- county_race %>% 
-  filter(variable == "DP05_0084P") %>% 
+  filter(variable == "DP05_0098P") %>% # American Indian and Alaska Native alone, not hispanic
   rename(indigE = estimate,
          indigM = moe) %>% 
   select(-variable)
 
 county_asian <- county_race %>% 
-  filter(variable == "DP05_0085P") %>% 
+  filter(variable == "DP05_0099P") %>% # asian alone not hispanic
   rename(asianE = estimate,
          asianM = moe) %>% 
   select(-variable)
 
 county_othrace <- county_race %>% 
-  filter(variable %in% c("DP05_0086P", "DP05_0087P")) %>% # Native Hawaiian and Other Pacific Islander alone & Some other Race
+  filter(variable %in% c("DP05_0100P", "DP05_0101P")) %>% # Native Hawaiian and Other Pacific Islander alone & Some other Race, not hispanic
   group_by(GEOID, NAME) %>% 
   summarize(othraceE = sum(estimate),
             othraceM = moe_sum(moe = moe, estimate = estimate))
 
 county_multi <- county_race %>% 
-  filter(variable == "DP05_0088P") %>% 
+  filter(variable == "DP05_0102P") %>% 
   rename(multiE = estimate,
          multiM = moe) %>% 
   select(-variable)
 
-county_ltnx <- county_race %>% 
-  filter(variable == "DP05_0076P") %>% 
-  rename(ltnxE = estimate,
-         ltnxM = moe) %>% 
+county_hisp <- county_race %>% 
+  filter(variable == "DP05_0090P") %>% 
+  rename(hispE = estimate,
+         hispM = moe) %>% 
   select(-variable)
 
 # county_schl: 6 groups (3-4, 5-9, 10-14, 15-17, 18-19, 20-24) must be summed
@@ -397,7 +318,7 @@ county_data <- county_data_s %>%
   left_join(county_asian) %>% 
   left_join(county_othrace) %>% 
   left_join(county_multi) %>% 
-  left_join(county_ltnx) %>% 
+  left_join(county_hisp) %>% 
   left_join(county_age17) %>% 
   left_join(county_age24) %>% 
   left_join(county_age64) %>% 
@@ -406,21 +327,20 @@ county_data <- county_data_s %>%
 
 county_data <- county_data %>% 
   mutate(geoid = GEOID,
-         year = as.character(acs_year)) %>% 
+         year = as.character(acsyr)) %>% 
   separate(geoid, into = c("state", "locality"), 
            sep = c(2)) %>% 
-  select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, indigE, indigM, othraceE, othraceM, multiE, multiM, ltnxE, ltnxM, everything())
+  select(GEOID, NAME, year, totalpopE, totalpopM, whiteE, whiteM, blackE, blackM, asianE, asianM, indigE, indigM, othraceE, othraceM, multiE, multiM, hispE, hispM, everything())
 
 
 # ....................................................
-# 5. Summarize/Examine indicators ----
+# Summarize/Examine indicators ----
 county_data %>% select_at(vars(ends_with("E"))) %>% summary()
 
-
 # ....................................................
-# 6. Save ----
-# save rcaa_recap and rcaa_recap_geo
-saveRDS(county_data, file = "data/county_data.RDS") 
+# Save ----
+saveRDS(county_data, file = paste0(filepath_data, "acs5_county.RDS")) 
 
-
-
+# Remove vars from environment
+rm(list = ls(pattern = "^varlist_"))
+rm(list = setdiff(ls(pattern = "^county_"), "county_data"))

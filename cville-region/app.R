@@ -1,14 +1,10 @@
 # Published version
-# Cville Region Equity Atlas Dashboard
-# Last updated: 5/20/2025
-  # fixed download csv -removed year filter
-# update: 6/14/2024
-  # Removed year argument from md() - only one year should be present in all_data
-  # Update all dashboard styling to bslib defaults, to avoid future conflicts with bootstrap updates
-  # Moved data prep to combine_data.R
-# Last Deployed: 5/20/2025
+# Charlottesville Regional Data Dashboard
+# Last updated: 5/1/2026
+# Last Deployed: 5/1/2026
   # Deployed to both cville-region and cville_equity_atlas
 
+library(qs2)
 library(shiny)
 library(bslib)
 library(bsicons)
@@ -22,32 +18,47 @@ library(biscale) # for tercile plots
 library(stringi) # for tercile plots 
 
 
-# Load Data ---------------------------------------------------------------
+# Read in data ----
 
-load("www/app_data.Rdata")
+update_text <- "Last Update: May 1, 2026"
 
-# Define UI ---------------------------------------------------------------
+app_data <- qs_read("www/app_data_5_26.qs2")
+
+counties_geo <- app_data$counties_geo
+counties <-  app_data$counties
+all_data <- app_data$all_data
+mycolors <- app_data$mycolors
+parks_sf <- app_data$parks_sf
+schools_sf <- app_data$schools_sf
+sabselem_sf <- app_data$sabselem_sf
+mcd_sf <- app_data$mcd_sf
+group_df <- app_data$group_df
+ind_choices <- app_data$ind_choices
+helpers <- app_data$helpers
+data_dict <- app_data$data_dict
+bbox <- app_data$bbox
+cville_geo <- app_data$cville_geo
+fewpal <- app_data$fewpal
+no_tercile_tract <- app_data$no_tercile_tract
+no_tercile_block <- app_data$no_tercile_block
+
+# Define UI ----
 ui <-  
   htmlTemplate(filename = "cville-atlas-template.html", main =  # Removed CSS/footer due to issues bootstrap update
     page_sidebar(
-          title = div(h1("Charlottesville Regional Equity Dashboard") %>% 
+          title = span(h1("Charlottesville Regional Data Dashboard") %>%
                         tagAppendAttributes(class = 'bslib-page-title navbar-brand text-wrap fw-light'),
                       actionLink("infoModal", label = "", icon = icon("circle-info")) %>%
                         tagAppendAttributes(class = 'bslib-page-title fs-4', style = "position: absolute;top: 0.5rem;right: 1rem;")),
           fillable = FALSE,
-          window_title = "Charlottesville Regional Equity Dashboard",
+          window_title = "Charlottesville Regional Data Dashboard",
           lang = "en",
-          theme = bs_theme(version = 5) %>%
-            bs_add_rules(
-              list(".navbar { background-color: #f8f9fa !important; }")
-            ),
           sidebar = sidebar(
-            bg = "white",
             width = "28%",
             selectInput("indicator1",
                         label = "First Equity Indicator:",
                         choices = ind_choices,
-                        selected = ind_choices$People['Estimated Population (All Levels)']) %>% 
+                        selected = ind_choices$People['Estimated population (All Levels)']) %>% 
               helper(type = "inline",
                      title = "First Equity Indicator",
                      icon = "question-circle",
@@ -66,7 +77,7 @@ ui <-
             selectInput("indicator2",
                         label = "Second Equity Indicator:",
                         choices = ind_choices,
-                        selected = ind_choices$Housing['Total Housing Units (All Levels)']) %>% 
+                        selected = ind_choices$Housing['Total housing units (All Levels)']) %>% 
               helper(type = "inline",
                      title = "Second Equity Indicator",
                      icon = "question-circle",
@@ -106,7 +117,8 @@ ui <-
                      size = "m"),
             actionButton(
               inputId = "selectall_geo", 
-              label = "Select/Unselect All")
+              label = "Select/Unselect All"),
+            card(class = "shadow-none small", update_text)
           ), # end sidebar
           navset_pill(
             nav_panel(
@@ -182,8 +194,10 @@ ui <-
               icon = icon('table-cells-large'),
               value = "tab5",
               br(), h2(textOutput("tbltitle", inline = TRUE)),
-              p("The data table below shows the values for the selected Equity Indicators and the tercile group (Low, Medium, High) for the selected geographic level (counties, census tracts, or block groups) in the selected localities."),
-              p("To download the data for all available measures and localities in this app, see the Download Data section below."),
+              HTML("
+                <p>The data table below shows the values for the selected Equity Indicators and the tercile group (Low, Medium, High) for the selected geographic level (counties, census tracts, or block groups) in the selected localities.</p>
+                <p><strong>To download the data for all available measures and localities in this app, see the Download Data section below.</strong></p>
+              "),
               DTOutput("tbl"), br(),
               h2("Download Data"),
               p("Data in this Atlas is provided as a compressed folder, which includes CSVs for data at the county, census tract, and block group levels and a data dictionary."),
@@ -194,11 +208,11 @@ ui <-
               icon = icon('at'),
               value = "tab5",
               br(), h2("Citation"),
-              p("\"Charlottesville Regional Equity Dashboard\"; Center for Community Partnerships, University of Virginia; Accessed ", Sys.Date(), "; https://equityatlas.virginiaequitycenter.org/dashboards/cville-equity-dashboard/"),
+              p("\"Charlottesville Regional Data Dashboard\"; Center for Community Partnerships, University of Virginia; Accessed ", Sys.Date(), "; https://communitypartnerships.github.io/data-resources/dashboards/cville-data-dashboard.html"),
               br(), br(),
-              h3("Charlottesville Equity Atlas"),
-              p("For more tools and reports focused on regional equity measures:"),
-              a(href = "https://virginiaequitycenter.github.io/cville-equity-atlas/", "Visit the full Charlottesville Regional Equity Atlas site.", target="_top")
+              h3("Charlottesville Regional Data Resource Hub"),
+              p("For more regional data tools and reports:"),
+              a(href = "https://communitypartnerships.github.io/data-resources/", "Visit the full Charlottesville Regional Data Resource Hub.", target="_top")
             ),
             # nav_spacer(),
             # nav_item(actionLink("infoModal", label = "", icon = icon("question-circle")))
@@ -224,6 +238,21 @@ server <- function(input, output, session) {
   # to make helper() info render
   observe_helpers()
   
+  listen_indicator1 <- reactive(input$indicator1)
+  
+  listen_indicator2 <- reactive(input$indicator2)
+  
+  listen_geo <- reactive(input$geo)
+  
+  listen_geo_df <- reactive(input$geo_df)
+  
+  # get map data
+  md <- reactive({
+    d <- all_data %>% filter(coname %in% input$geo) %>%
+      filter(GEO_LEVEL == input$geo_df) 
+    d
+  })
+  
   # output available indicator geographic levels
   output$ind_geo1 <- renderText({
     paste0("Available Geographic Levels: ", attr(md()[[input$indicator1]], "geo_level"))
@@ -235,7 +264,7 @@ server <- function(input, output, session) {
 
   # output indicator 1 name, definition, and source
   output$ind1_name <- renderText({
-    attr(md()[[input$indicator1]], "goodname")
+    attr(md()[[input$indicator1]], "label")
   })
 
   output$ind1_abt <- renderText({
@@ -249,7 +278,7 @@ server <- function(input, output, session) {
   # output indicator 2 name, definition, and source
   output$ind2_name <- renderText({
     req(input$indicator2)
-    attr(md()[[input$indicator2]], "goodname")
+    attr(md()[[input$indicator2]], "label")
   })
   
   output$ind2_abt <- renderText({
@@ -262,19 +291,7 @@ server <- function(input, output, session) {
     attr(md()[[input$indicator2]], "source")
   })
 
-  # get map data
-  md <- reactive({
-    all_data %>% filter(county.nice %in% input$geo &
-                          GEO_LEVEL == input$geo_df) 
-  })
   
-  listen_indicator1 <- reactive({
-    list(input$indicator1, input$geo, input$geo_df)
-  })
-
-  listen_indicator2 <- reactive({
-    list(input$indicator2, input$geo, input$geo_df)
-  })
 
   # county selections (select/deselect all)
   observe({
@@ -306,12 +323,12 @@ server <- function(input, output, session) {
         addMapPane('magisterialDistricts', zIndex = 470) %>%
         addPolygons(data= counties_geo, color = "#969997",
                     fill = FALSE,
-                    weight = 2,
+                    weight = 1,
                     group = 'countyBoundaries',
                     options = pathOptions(pane = 'countyBoundaries')) %>%
         addPolygons(data = cville_geo, color = FALSE,
                     fill = FALSE,
-                    weight = 2,
+                    weight = 1,
                     group = 'cvilleBoundaries',
                     options = pathOptions(pane = 'cvilleBoundaries')) %>%
         addResetMapButton() %>% 
@@ -330,7 +347,7 @@ server <- function(input, output, session) {
                    options = pathOptions(pane = 'schools')) %>%
         addPolygons(data = filter(sabselem_sf),
                     group="Elem School Zone",
-                    color = "blue", fill = FALSE, weight = 2,
+                    color = "blue", fill = FALSE, weight = 1,
                     popup = ~schnam,
                     highlight = highlightOptions(weight = 3,
                                                  color = "blue",
@@ -338,7 +355,7 @@ server <- function(input, output, session) {
                     options = pathOptions(pane = 'elemSchoolZone')) %>%
         addPolygons(data = filter(mcd_sf),
                     group="Magisterial Districts",
-                    color = "purple", fill = FALSE, weight = 2,
+                    color = "purple", fill = FALSE, weight = 1,
                     popup = ~NAMELSAD,
                     highlight = highlightOptions(weight = 3,
                                                  color = "purple",
@@ -355,20 +372,20 @@ server <- function(input, output, session) {
   }
   
   ## leafletProxy Map Function ---- 
-  mapProxyFunction <- function(mapData, mapId, fillColor, ind, popupText){
-    
+  mapProxyFunction <- function(mapData, mapId, fillColor, ind, popupText, legend_labels){
+
     # popup content
     popupContent <- if (input$geo_df == "County"){
-      paste0("<strong>", attr(ind, "goodname"), ": </strong>",
+      paste0("<strong>", attr(ind, "label"), ": </strong>",
              prettyNum(popupText, big.mark=",", preserve.width="none"), "<br>",
              mapData[["NAME"]])
     } else {
-      paste0("<strong>", attr(ind, "goodname"), ": </strong>",
+      paste0("<strong>", attr(ind, "label"), ": </strong>",
              prettyNum(popupText, big.mark=",", preserve.width="none"), "<br>",
              mapData[["NAME"]], "<br>",
              "Tract Name: ", mapData[["tractnames"]])
     }
-
+    
     # map proxy
     proxy <- leafletProxy(mapId, data = mapData)
 
@@ -376,24 +393,33 @@ server <- function(input, output, session) {
     observe({
       proxy %>%
         clearGroup('indicatorSelection') %>% 
-        addPolygons(data = mapData, fillColor = fillColor,
-                      fillOpacity = 0.4,
-                      color = "#969997",
-                      weight = 2,
-                      smoothFactor = 0.2,
-                      popup = popupContent,
-                      highlight = highlightOptions(
-                        weight = 3,
+        addPolygons(data = mapData, 
+                    fillColor = fillColor,
+                    fillOpacity = 0.4,
+                    color = "#969997",
+                    weight = 1,
+                    smoothFactor = 0.2,
+                    popup = popupContent,
+                    highlight = highlightOptions(
+                        weight = 1.5,
                         fillOpacity = 0.7,
                         bringToFront = FALSE),
                     group = 'indicatorSelection') %>%
         # mapGroupFunction(mapData) %>%
         clearControls() %>%
-        addLegend(pal = colorNumeric(mycolors, domain = ind),
-                    values = ind,
-                    position = "topright",
-                    opacity = 0.4,
-                    title = attr(ind, "goodname"))
+        addLegend(pal = colorNumeric(mycolors, 
+                                 domain = ind),
+                  values = ind,
+                  labFormat = labelFormat(
+                    suffix = ifelse(str_detect(attr(ind, "about"), "percent"), "%", ""),
+                    prefix = ifelse(str_detect(attr(ind, "about"), "median household income|median personal earnings"), "$", "")
+                  ),
+                  position = "topright",
+                  opacity = 0.5,
+                  title = ~gsub("\n", "<br>",
+                                stringr::str_wrap(attr(ind, "label"),
+                                                  width = 30,
+                                                  whitespace_only = FALSE)))
     })
   }
   
@@ -473,16 +499,16 @@ server <- function(input, output, session) {
 # Build Map 1 -------------------------------------------------------
 
   # output map1 title
-  output$maptitle <- renderText({paste0(attr(md()[[input$indicator1]], "goodname"))})
+  output$maptitle <- renderText({paste0(attr(md()[[input$indicator1]], "label"))})
 
   # render leaflet map1
   output$map1 <- renderLeafletFunction()
 
-  # update map1 based on selected indicator (listen_indicator1 reactive)
-  observeEvent(listen_indicator1(), {
+  # # update map1 based on selected indicator (listen_indicator1 reactive)
+  observeEvent(list(listen_indicator1(),listen_geo(),listen_geo_df()), {
     # get selected indicator column from map data
-    ind1 <- md() %>% 
-      filter(!is.na(.data[[input$indicator1]])) %>% 
+    ind1 <- md() %>%
+      filter(!is.na(.data[[input$indicator1]])) %>%
       pull(input$indicator1)
 
     if (all(is.na(md()[[input$indicator1]]))){
@@ -497,7 +523,7 @@ server <- function(input, output, session) {
 # Build Map 2 -------------------------------------------------------
    # output title and source for map2
   output$maptitle2 <- renderText({
-    if (input$indicator2 != "None") paste0(attr(md()[[input$indicator2]], "goodname")) })
+    if (input$indicator2 != "None") paste0(attr(md()[[input$indicator2]], "label")) })
   output$source2 <- renderText({
     if (input$indicator2 != "None") paste0("Source: ", attr(md()[[input$indicator2]], "source"))})
 
@@ -506,7 +532,7 @@ server <- function(input, output, session) {
 
   # render leaflet map on hidden (second) tab
   outputOptions(output, "map2", suspendWhenHidden = FALSE)
-  
+
   # update map2 based on selected indicator (listen_indicator2 reactive)
   observeEvent(listen_indicator2(), {
     # get selected indicator column from map data
@@ -531,8 +557,8 @@ server <- function(input, output, session) {
     if (all(is.na(md()[[input$indicator1]])) | all(is.na(md()[[input$indicator2]])) | length(input$geo) == 0) {
       paste("Please make sure you have selected indicators available in the selected geographic level and/or at least one locality.")
     } else { 
-      paste(attr(md()[[input$indicator1]], "goodname"), " vs. ", 
-            attr(md()[[input$indicator2]], "goodname"))
+      paste(attr(md()[[input$indicator1]], "label"), " vs. ", 
+            attr(md()[[input$indicator2]], "label"))
     }
   })
 
@@ -563,7 +589,7 @@ server <- function(input, output, session) {
     xyscatter <- plot_ly(data=d,  
             x = ~get(input$indicator1),
             y=  ~get(input$indicator2),
-            color = ~county.nice,
+            color = ~coname,
             type = "scatter",
             mode = "markers",
             fill = ~"", # to remove line.width error
@@ -582,18 +608,18 @@ server <- function(input, output, session) {
                       md()[["NAME"]], "<br>",
                       "Estimated Population: ", d$pop, "<br>",
                       "<b>Indicator Selections:</b><br>",
-                      attr(d[[input$indicator1]], "goodname"), ": ", 
+                      attr(d[[input$indicator1]], "label"), ": ", 
                       d[[input$indicator1]], "<br>",
-                      attr(d[[input$indicator2]], "goodname"), ": ", 
+                      attr(d[[input$indicator2]], "label"), ": ", 
                       d[[input$indicator2]])
-                  } else if (attr(d[[input$indicator1]], "goodname") == "Estimated Population"){
+                  } else if (attr(d[[input$indicator1]], "label") == "Estimated Population"){
                     ~paste0(
                       md()[["NAME"]], "<br>",
                       "Tract Name(s): ", md()[["tractnames"]], "<br>",
                       "<b>Indicator Selections:</b><br>",
-                      attr(d[[input$indicator1]], "goodname"), ": ", 
+                      attr(d[[input$indicator1]], "label"), ": ", 
                       d[[input$indicator1]], "<br>",
-                      attr(d[[input$indicator2]], "goodname"), ": ", 
+                      attr(d[[input$indicator2]], "label"), ": ", 
                       d[[input$indicator2]])
                   } else {
                     ~paste0(
@@ -601,14 +627,14 @@ server <- function(input, output, session) {
                       "Tract Name(s): ", md()[["tractnames"]], "<br>",
                       "Estimated Population: ", d$pop, "<br>",
                       "<b>Indicator Selections:</b><br>",
-                      attr(d[[input$indicator1]], "goodname"), ": ", 
+                      attr(d[[input$indicator1]], "label"), ": ", 
                       d[[input$indicator1]], "<br>",
-                      attr(d[[input$indicator2]], "goodname"), ": ", 
+                      attr(d[[input$indicator2]], "label"), ": ", 
                       d[[input$indicator2]])
                   }, 
             hoverinfo='text') %>% 
-        layout(xaxis=list(title=attr(d[[input$indicator1]], "goodname"), showticklabels = TRUE, fixedrange = T),
-               yaxis=list(title=attr(d[[input$indicator2]], "goodname"), showticklabels = TRUE, fixedrange = T),
+        layout(xaxis=list(title=attr(d[[input$indicator1]], "label"), showticklabels = TRUE, fixedrange = T),
+               yaxis=list(title=attr(d[[input$indicator2]], "label"), showticklabels = TRUE, fixedrange = T),
                legend = list(orientation = "h", x = 0, y = -0.2))
 
       # note: in the legend, we hide trace 1 (the xhist) and trace (3 + length(input$geo)), which is the yhist;
@@ -630,9 +656,9 @@ server <- function(input, output, session) {
   #   } else {
   #     paste0(
   #       "Sources: ",
-  #       attr(md()[[input$indicator1]], "goodname"), ": ", 
+  #       attr(md()[[input$indicator1]], "label"), ": ", 
   #       attr(md()[[input$indicator1]], "source"), " ",
-  #       attr(md()[[input$indicator2]], "goodname"), ": ", 
+  #       attr(md()[[input$indicator2]], "label"), ": ", 
   #       attr(md()[[input$indicator2]], "source")
   #     )
   #   }
@@ -647,8 +673,8 @@ server <- function(input, output, session) {
     } else if (((input$indicator1 %in% no_tercile_tract | input$indicator2 %in% no_tercile_tract) && input$geo_df == "Census Tract") | ((input$indicator1 %in% no_tercile_block | input$indicator2 %in% no_tercile_block) && input$geo_df == "Block Group")){
       "One or more selected indicators are not available for this analysis at the selected geographic level. Select a larger geographic area to view."
     } else { 
-      paste(attr(md()[[input$indicator1]], "goodname"), "rank by ", 
-            attr(md()[[input$indicator2]], "goodname"), "averages")
+      paste(attr(md()[[input$indicator1]], "label"), "rank by ", 
+            attr(md()[[input$indicator2]], "label"), "averages")
     }
   })
   
@@ -664,8 +690,8 @@ server <- function(input, output, session) {
                 var_1_group = case_when(var1_tercile == 1 ~ 'Low',
                                         var1_tercile == 2 ~ 'Medium',
                                         var1_tercile == 3 ~ 'High'),
-                goodname_x = attr(md()[[input$indicator1]], "goodname"),
-                goodname_y = attr(md()[[input$indicator2]], "goodname"),
+                label_x = attr(md()[[input$indicator1]], "label"),
+                label_y = attr(md()[[input$indicator2]], "label"),
                 label_geo = case_when(input$geo_df == "County" ~ 'counties',
                                         input$geo_df == "Census Tract" ~ 'tracts',
                                         input$geo_df == "Block Group" ~ 'blocks')
@@ -678,7 +704,7 @@ server <- function(input, output, session) {
 
       t <- ggplot(to_tercile, aes(x = var1_tercile, y = var_2_mean,
                                   fill = var1_tercile, label = var_1_group,
-                                  text = paste0('Mean of ', goodname_y, ': ', round(var_2_mean, digits = 2)))) +
+                                  text = paste0('Mean of ', label_y, ': ', round(var_2_mean, digits = 2)))) +
         geom_bar(stat = 'identity', width = 0.66) +
         scale_fill_manual(values = c('#dfb0d6', '#a5add3', '#569ab9')) +
         scale_x_discrete(labels = paste0(c('Lowest ', 'Middle ', 'Highest '), 'third of ', to_tercile$label_geo)) +
@@ -686,8 +712,8 @@ server <- function(input, output, session) {
       
       ggplotly(t, tooltip = c('text')) %>%
         layout(showlegend = FALSE, 
-              xaxis = list(title = list(text = attr(md()[[input$indicator1]], "goodname"), font = list(size=14)), showticklabels = TRUE, fixedrange = TRUE),
-              yaxis = list(title = list(text = attr(md()[[input$indicator2]], "goodname"), font = list(size=14)),showticklabels = TRUE, fixedrange = TRUE)
+              xaxis = list(title = list(text = attr(md()[[input$indicator1]], "label"), font = list(size=14)), showticklabels = TRUE, fixedrange = TRUE),
+              yaxis = list(title = list(text = attr(md()[[input$indicator2]], "label"), font = list(size=14)),showticklabels = TRUE, fixedrange = TRUE)
         )
   }
 })
@@ -699,8 +725,8 @@ server <- function(input, output, session) {
         if (all(is.na(md()[[input$indicator1]])) | all(is.na(md()[[input$indicator2]])) | length(input$geo) == 0) {
       paste("Please make sure you have selected indicators available in the selected geographic level and/or at least one locality.")
         } else {
-    paste("Data by", input$geo_df, ": ", attr(md()[[input$indicator1]], "goodname"), "(Variable 1) and ", 
-          attr(md()[[input$indicator2]], "goodname"), "(Variable 2)")
+    paste("Data by", input$geo_df, ": ", attr(md()[[input$indicator1]], "label"), "(Variable 1) and ", 
+          attr(md()[[input$indicator2]], "label"), "(Variable 2)")
         }
   })
 
@@ -714,10 +740,10 @@ server <- function(input, output, session) {
       tble_data <- st_drop_geometry(tble_data) %>% 
         mutate(x = round(x, digits = 2),
               y = round(y, digits = 2)) %>%
-        select(NAME, county.nice, tractnames, x, y, pop)
-      tble_data <- tble_data[with(tble_data, order(county.nice, NAME)), ]
+        select(NAME, coname, tractnames, x, y, pop)
+      tble_data <- tble_data[with(tble_data, order(coname, NAME)), ]
       datatable(tble_data,
-                colnames=c("Name", "Locality", "Tract Name", attr(md()[[input$indicator1]], "goodname"), attr(md()[[input$indicator2]], "goodname"), "Est. Population"),
+                colnames=c("Name", "Locality", "Tract Name", attr(md()[[input$indicator1]], "label"), attr(md()[[input$indicator2]], "label"), "Est. Population"),
                 rownames = FALSE,
                 options = list(pageLength = 10, list(3, 'asc'), scrollX = TRUE))
 
@@ -735,10 +761,10 @@ server <- function(input, output, session) {
                                             var2_tercile == 3 ~ 'High'),
               x = round(x, digits = 2),
               y = round(y, digits = 2)) %>%
-        select(NAME, county.nice, tractnames, x, var1_tercile_cat, y, var2_tercile_cat, pop)
-      tble_data <- tble_data[with(tble_data, order(county.nice, NAME)), ]
+        select(NAME, coname, tractnames, x, var1_tercile_cat, y, var2_tercile_cat, pop)
+      tble_data <- tble_data[with(tble_data, order(coname, NAME)), ]
       datatable(tble_data,
-                colnames=c("Name", "Locality", "Tract Name", attr(md()[[input$indicator1]], "goodname"), "Tercile Group Var 1", attr(md()[[input$indicator2]], "goodname"), "Tercile Group Var 2", "Est. Population"),
+                colnames=c("Name", "Locality", "Tract Name", attr(md()[[input$indicator1]], "label"), "Tercile Group Var 1", attr(md()[[input$indicator2]], "label"), "Tercile Group Var 2", "Est. Population"),
                 rownames = FALSE,
                 options = list(pageLength = 10, list(3, 'asc'), scrollX = TRUE))
     }
