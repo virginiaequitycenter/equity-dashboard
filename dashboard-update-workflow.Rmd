@@ -65,9 +65,9 @@ A key can be obtained from <http://api.census.gov/data/key_signup.html>. This ty
 Review ACS table variables if needed.
 ```{r}
 # Uncomment below as needed. 
-vars_acs <- load_variables(acsyr, "acs5", cache = TRUE)
-vars_subject <- load_variables(acsyr, "acs5/subject", cache = TRUE)
-vars_profile <- load_variables(acsyr, "acs5/profile", cache = TRUE)
+# vars_acs <- load_variables(acsyr, "acs5", cache = TRUE)
+# vars_subject <- load_variables(acsyr, "acs5/subject", cache = TRUE)
+# vars_profile <- load_variables(acsyr, "acs5/profile", cache = TRUE)
 ```
 
 ### Get and Clean ACS5 data
@@ -171,28 +171,28 @@ leaflet(cville_bounds) %>%
 ## Update Metadata
 
 ### Data Sources
-Review the below Excel workbook `prettytable_data_sources.xlsx` saved in `data/` and update the following:
+Review the below Excel workbook `prettytable_data_sources.xlsx` saved in `scripts/` and update the following:
 * Source column in each sheet to reflect current ACS 5-year survey and Accessed Data (use Find & Replace)
 * In County sheet, update source and about info for Life Expectancy data
 
 ```{r}
 # Read in data sources workbook sheets
-metadata <- read_excel("data/prettytable_data_sources.xlsx", sheet = "acs_county")
+metadata <- read_excel("scripts/prettytable_data_sources.xlsx", sheet = "acs_county")
 metadata$label <- metadata$description
 
 # metadata$label <- str_to_title(metadata$description)
 
-# metadata_tract <- read_excel("data/prettytable_data_sources.xlsx", sheet = "acs_tract")
+# metadata_tract <- read_excel("scripts/prettytable_data_sources.xlsx", sheet = "acs_tract")
 # metadata_tract$label <- str_to_title(metadata_tract$description)
 # 
-# metadata_blkgrp <- read_excel("data/prettytable_data_sources.xlsx", sheet = "acs_blockgroup")
+# metadata_blkgrp <- read_excel("scripts/prettytable_data_sources.xlsx", sheet = "acs_blockgroup")
 # metadata_blkgrp$label <- str_to_title(metadata_blkgrp$description)
 ```
 
 ### Regional Tractnames
 ```{r, results='hide'}
 # Read in Regional Tract names csv
-tractnames <- read_csv("data/regional_tractnames.csv")
+tractnames <- read_csv("scripts/regional_tractnames.csv")
 
 # Clean up tractnames
 tractnames <- tractnames %>%
