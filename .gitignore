@@ -8,6 +8,7 @@ datatrends/
 *.RDS
 *.geojson
 *.RData
+*.qs2
 data.zip
 
 # ignore project files
