@@ -1,7 +1,8 @@
 # Published version
 # Charlottesville Regional Data Dashboard
-# Last updated: 5/1/2026
-# Last Deployed: 5/1/2026
+# Last updated: 8/26/2026
+  # Added Carto API key
+# Last Deployed: 8/26/2026
   # Deployed to both cville-region and cville_equity_atlas
 
 library(qs2)
@@ -21,8 +22,7 @@ library(stringi) # for tercile plots
 # Read in data ----
 
 update_text <- "Last Update: May 1, 2026"
-
-app_data <- qs_read("www/app_data_5_26.qs2")
+app_data <- qs_read("www/app_data_8_26.qs2")
 
 counties_geo <- app_data$counties_geo
 counties <-  app_data$counties
@@ -41,6 +41,8 @@ cville_geo <- app_data$cville_geo
 fewpal <- app_data$fewpal
 no_tercile_tract <- app_data$no_tercile_tract
 no_tercile_block <- app_data$no_tercile_block
+
+carto_url <- readRDS("www/carto_url_8_2026.rds")
 
 # Define UI ----
 ui <-  
@@ -310,10 +312,12 @@ server <- function(input, output, session) {
 
 # Map Functions -------------------------------------------------------
   ## Leaflet base map function ----
+  
   renderLeafletFunction <- function(map) {
     renderLeaflet({
         leaflet() %>%
-        addProviderTiles(providers$CartoDB.Positron) %>%
+        addTiles(urlTemplate = carto_url) |> 
+        # addProviderTiles(providers$CartoDB.Positron) %>%
         # fitBounds(bbox[1], bbox[2], bbox[3], bbox[4]) %>%
         addMapPane('countyBoundaries', zIndex = 410) %>%
         addMapPane('cvilleBoundaries', zIndex = 420) %>%

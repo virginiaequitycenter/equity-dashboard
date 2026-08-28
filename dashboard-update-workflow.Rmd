@@ -428,6 +428,7 @@ no_tercile_tract <- c("indigE", "othraceE")
 # not avail at block group: indigE, othraceE, asianE, snapE 
 no_tercile_block <- c("indigE", "othraceE", "asianE", "snapE")
 
+
 ```
 
 # Save all data for app
@@ -438,7 +439,7 @@ save(counties_geo, counties, all_data, mycolors,
      parks_sf, schools_sf, sabselem_sf, mcd_sf, group_df,
      ind_choices, helpers, data_dict, bbox, cville_geo, fewpal,
      no_tercile_tract, no_tercile_block,
-     file = paste0(filepath_data, "app_data_5_2026.Rdata"))
+     file = paste0(filepath_data, "app_data_8_2026.Rdata"))
 
 # create data for app
 library(qs2)
@@ -447,7 +448,14 @@ qs_save(list(counties_geo=counties_geo, counties=counties, all_data=all_data, my
              group_df=group_df, ind_choices=ind_choices, helpers=helpers, data_dict=data_dict, bbox=bbox, 
              cville_geo=cville_geo, fewpal=fewpal, no_tercile_tract=no_tercile_tract, 
              no_tercile_block=no_tercile_block),
-        file = paste0(filepath_app, "app_data_5_26.qs2"))
+        file = paste0(filepath_app, "app_data_8_26.qs2"))
+
+# Carto API Key
+# Retrieve stored API key
+carto_key <- Sys.getenv("CARTO_API_KEY")
+carto_url <- paste0('https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=', carto_key)
+
+saveRDS(carto_url, paste0(filepath_app, "carto_url_8_2026.rds"))
 
 # app_data <- qs_read(paste0(filepath_app, "app_data_5_26.qs2"))
 # 
